@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrepPath — UPSC Revision Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Playfair+Display:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070b0f;
+  --surface: #0d1318;
+  --surface2: #141c24;
+  --surface3: #1b2530;
+  --border: #243040;
+  --border2: #2e3d50;
+  --accent: #e8c547;
+  --accent-dim: rgba(232,197,71,0.1);
+  --accent-glow: rgba(232,197,71,0.04);
+  --blue: #4a9eff;
+  --blue-dim: rgba(74,158,255,0.1);
+  --green: #3dd68c;
+  --green-dim: rgba(61,214,140,0.08);
+  --red: #ff6b6b;
+  --red-dim: rgba(255,107,107,0.1);
+  --orange: #ff9f43;
+  --text: #cdd8e3;
+  --text2: #7a8fa0;
+  --text3: #445566;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --serif: 'Playfair Display', serif;
+  --radius: 10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;line-height:1.6;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(232,197,71,0.05) 0%,transparent 60%);pointer-events:none;z-index:0;}
+.screen{display:none;min-height:100vh;position:relative;z-index:1;}
+.screen.active{display:flex;flex-direction:column;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 36px;border-bottom:1px solid var(--border);background:rgba(7,11,15,0.93);backdrop-filter:blur(20px);position:sticky;top:0;z-index:50;}
+.logo{font-family:var(--display);font-weight:800;font-size:1.3rem;color:var(--accent);letter-spacing:-0.3px;}
+.logo span{color:var(--text2);font-weight:400;}
+.step-dots{display:flex;gap:6px;align-items:center;}
+.sdot{width:32px;height:3px;border-radius:2px;background:var(--border2);transition:background 0.3s;}
+.sdot.done{background:var(--green);}
+.sdot.active{background:var(--accent);}
+.user-pill{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 14px 5px 8px;font-size:11px;color:var(--text2);}
+.uavatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--orange));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--bg);font-family:var(--display);}
+
+/* LAYOUT */
+.page-center{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:580px;}
+.card-wide{max-width:740px;}
+.card-xl{max-width:920px;}
+.card-title{font-family:var(--display);font-size:1.5rem;font-weight:700;margin-bottom:6px;line-height:1.2;}
+.card-sub{color:var(--text2);font-size:12px;margin-bottom:28px;}
+.card-sub em{color:var(--accent);font-style:normal;}
+.screen-tag{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text2);margin-bottom:8px;display:block;}
+.prog-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:28px;}
+.prog-fill{height:100%;border-radius:2px;background:var(--accent);transition:width 0.4s;}
+
+/* FORM */
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:10px;color:var(--text2);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:7px;font-weight:500;}
+.field label .req{color:var(--accent);margin-left:2px;}
+input[type=text],input[type=email],select,textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--mono);font-size:13px;padding:11px 14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+select option{background:var(--surface2);}
+
+.rgrid{display:grid;gap:8px;}
+.rgrid.c2{grid-template-columns:1fr 1fr;}
+.rgrid.c3{grid-template-columns:1fr 1fr 1fr;}
+.rbtn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:10px;position:relative;}
+.rbtn:hover{border-color:var(--border2);background:var(--surface3);}
+.rbtn.sel{border-color:var(--accent);background:var(--accent-glow);box-shadow:0 0 0 1px var(--accent-dim);}
+.rbtn input{position:absolute;opacity:0;}
+.rlabel{font-size:12px;color:var(--text);line-height:1.3;}
+.rlabel strong{display:block;font-size:13px;font-weight:500;}
+.rlabel small{font-size:10px;color:var(--text2);}
+.rdot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
+.rbtn.sel .rdot{border-color:var(--accent);background:var(--accent);}
+.rbtn.sel .rdot::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--bg);display:block;}
+
+/* SUBJECT ROWS */
+.subj-grid{display:flex;flex-direction:column;gap:7px;}
+.subj-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;}
+.subj-name{font-size:12px;color:var(--text);}
+.subj-name small{display:block;font-size:10px;color:var(--text2);}
+.spills{display:flex;gap:4px;}
+.sp{padding:4px 9px;border-radius:20px;font-size:10px;border:1px solid var(--border);cursor:pointer;color:var(--text2);transition:all 0.15s;font-family:var(--mono);font-weight:500;}
+.sp:hover{border-color:var(--border2);color:var(--text);}
+.sp.s-strong{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+.sp.s-neutral{background:var(--blue-dim);border-color:var(--blue);color:var(--blue);}
+.sp.s-weak{background:var(--red-dim);border-color:var(--red);color:var(--red);}
+
+/* DAY TOGGLES */
+.day-togs{display:flex;gap:6px;flex-wrap:wrap;}
+.dtog{width:44px;height:44px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--text2);transition:all 0.15s;user-select:none;}
+.dtog:hover{border-color:var(--border2);color:var(--text);}
+.dtog.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:600;}
+
+/* TIME GRID */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tfield{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+.tfield label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:6px;}
+.tfield select{background:transparent;border:none;padding:0;font-size:13px;color:var(--text);width:100%;outline:none;}
+
+/* BREAKS */
+.break-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.break-item{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;}
+.break-item span{font-size:12px;color:var(--text);}
+.bdel{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;transition:color 0.15s;}
+.bdel:hover{color:var(--red);}
+.add-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 22px;border-radius:var(--radius);font-family:var(--mono);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.2s;letter-spacing:0.02em;}
+.btn-primary{background:var(--accent);color:var(--bg);width:100%;margin-top:6px;}
+.btn-primary:hover{background:#f0d060;transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,197,71,0.2);}
+.btn-primary:active{transform:none;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2);padding:10px 18px;}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);}
+.btn-google{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:100%;margin-bottom:10px;}
+.btn-google:hover{border-color:var(--border2);background:var(--surface3);}
+.btn-fb{background:#1877F2;color:white;width:100%;}
+.btn-fb:hover{background:#2d88ff;}
+.divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text3);font-size:11px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* AUTH SCREEN */
+.auth-wrap{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;max-width:980px;width:100%;}
+.hero-tag{display:inline-block;background:var(--accent-dim);border:1px solid rgba(232,197,71,0.25);color:var(--accent);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:20px;font-weight:600;}
+.big-title{font-family:var(--serif);font-size:2.8rem;line-height:1.15;margin-bottom:12px;}
+.big-title em{font-style:italic;color:var(--accent);}
+.big-sub{color:var(--text2);font-size:13px;margin-bottom:32px;max-width:380px;}
+.astats{display:flex;gap:24px;margin-top:28px;}
+.astat{border-left:2px solid var(--border);padding-left:16px;}
+.astat-num{font-family:var(--display);font-size:1.4rem;font-weight:700;color:var(--accent);}
+.astat-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;}
+.auth-title{font-family:var(--display);font-size:1.2rem;font-weight:700;margin-bottom:6px;}
+.auth-sub{color:var(--text2);font-size:12px;margin-bottom:22px;}
+.free-badge{background:var(--green-dim);border:1px solid rgba(61,214,140,0.3);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-top:14px;}
+.fdot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.free-badge p{font-size:11px;color:var(--green);}
+.free-badge p span{color:var(--text2);font-weight:400;}
+
+/* LOADING */
+#s-loading{align-items:center;justify-content:center;text-align:center;}
+.load-wrap{display:flex;flex-direction:column;align-items:center;gap:24px;}
+.lring{width:60px;height:60px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load-title{font-family:var(--display);font-size:1.3rem;font-weight:700;}
+.load-steps{display:flex;flex-direction:column;gap:7px;width:320px;}
+.lstep{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);font-size:12px;color:var(--text2);}
+.lstep.done{color:var(--green);border-color:rgba(61,214,140,0.25);}
+.lstep.active{color:var(--accent);border-color:rgba(232,197,71,0.25);}
+
+/* DASHBOARD */
+#s-dashboard{flex-direction:column;}
+.dash-layout{display:grid;grid-template-columns:220px 1fr;flex:1;min-height:0;}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;gap:3px;position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto;}
+.sb-section{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);padding:10px 10px 4px;margin-top:6px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:12px;transition:all 0.15s;border:1px solid transparent;}
+.sb-item:hover{background:var(--surface2);color:var(--text);}
+.sb-item.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(232,197,71,0.15);}
+.sb-icon{font-size:14px;width:18px;text-align:center;}
+.sb-badge{margin-left:auto;background:var(--red);color:white;font-size:9px;padding:1px 6px;border-radius:10px;font-weight:600;}
+.sb-badge.gold{background:var(--accent);color:var(--bg);}
+.dash-main{padding:30px;overflow-y:auto;}
+.dash-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;}
+.dash-greeting{font-family:var(--display);font-size:1.45rem;font-weight:700;margin-bottom:4px;}
+.dash-greeting span{color:var(--accent);}
+.dash-meta{font-size:12px;color:var(--text2);}
+.dash-meta strong{color:var(--text);}
+
+/* STATS */
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.sc-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:7px;}
+.sc-val{font-family:var(--display);font-size:1.5rem;font-weight:700;color:var(--text);line-height:1;}
+.sc-sub{font-size:10px;color:var(--text3);margin-top:3px;}
+.sc.hl{border-color:rgba(232,197,71,0.3);background:var(--accent-glow);}
+.sc.hl .sc-val{color:var(--accent);}
+
+/* TODAY PANEL */
+.today-panel{background:var(--surface);border:1px solid rgba(232,197,71,0.2);border-radius:12px;padding:18px;margin-bottom:22px;}
+.tp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.tp-title{font-family:var(--display);font-size:1rem;font-weight:700;color:var(--accent);}
+.tt-list{display:flex;flex-direction:column;gap:7px;}
+.tt-item{display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:8px;padding:9px 12px;}
+.tt-time{font-size:10px;color:var(--text2);width:70px;flex-shrink:0;}
+.tt-subj{font-size:12px;color:var(--text);flex:1;line-height:1.3;}
+.tt-dur{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--surface3);color:var(--text2);}
+
+/* TABS */
+.tab-bar{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:20px;width:fit-content;}
+.tbtn{padding:8px 16px;border-radius:7px;font-size:12px;font-family:var(--mono);cursor:pointer;border:none;background:transparent;color:var(--text2);transition:all 0.15s;font-weight:500;}
+.tbtn.active{background:var(--surface3);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+.tab-c{display:none;}
+.tab-c.active{display:block;animation:fadeIn 0.2s ease;}
+
+/* WEEKLY VIEW */
+.week-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.week-nav button{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;font-family:var(--mono);}
+.week-nav button:hover{border-color:var(--border2);color:var(--text);}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;}
+.day-col{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 8px;min-height:160px;}
+.day-col.today{border-color:rgba(232,197,71,0.4);background:var(--accent-glow);}
+.day-col.off{opacity:0.35;}
+.dc-head{text-align:center;margin-bottom:9px;}
+.dc-day{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);}
+.dc-num{font-family:var(--display);font-size:1.1rem;font-weight:700;color:var(--text);}
+.day-col.today .dc-num{color:var(--accent);}
+.dtask{background:var(--surface2);border-left:2px solid var(--border2);border-radius:4px;padding:5px 6px;margin-bottom:5px;font-size:10px;color:var(--text2);line-height:1.3;}
+.dtask.gs1{border-color:#ff9f43;}
+.dtask.gs2{border-color:#4a9eff;}
+.dtask.gs3{border-color:#a29bfe;}
+.dtask.gs4{border-color:#fd79a8;}
+.dtask.opt{border-color:#55efc4;}
+.dtask.csat{border-color:#fdcb6e;}
+.dtask.ca{border-color:#e17055;}
+
+/* LIST VIEW */
+.plan-list{display:flex;flex-direction:column;gap:12px;}
+.pdlabel{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text2);padding:8px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.pdlabel.tday{color:var(--accent);}
+.ptask{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;transition:border-color 0.15s;}
+.ptask:hover{border-color:var(--border2);}
+.ptask.done-task{opacity:0.45;}
+.tcheck{width:18px;height:18px;border-radius:4px;border:2px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;font-size:10px;}
+.tcheck.chk{background:var(--green);border-color:var(--green);color:var(--bg);}
+.ti-sub{font-size:12px;color:var(--text);font-weight:500;}
+.ti-meta{font-size:10px;color:var(--text2);margin-top:1px;}
+.tdur{font-size:11px;color:var(--text2);background:var(--surface2);padding:3px 8px;border-radius:4px;white-space:nowrap;}
+
+/* SUBJECT BREAKDOWN */
+.sbdown{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sbc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.sbc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sbc-name{font-size:13px;font-weight:500;}
+.sbc-tag{font-size:10px;padding:2px 8px;border-radius:10px;}
+.tw{background:var(--red-dim);color:var(--red);}
+.tn{background:var(--blue-dim);color:var(--blue);}
+.ts{background:var(--green-dim);color:var(--green);}
+.sbc-bar{height:4px;background:var(--border);border-radius:2px;margin-bottom:8px;}
+.sbc-fill{height:100%;border-radius:2px;}
+.sbc-meta{font-size:10px;color:var(--text2);display:flex;justify-content:space-between;}
+
+/* PRICING */
+.pricing-hero{text-align:center;margin-bottom:44px;}
+.pricing-hero h1{font-family:var(--display);font-size:2rem;font-weight:800;margin-bottom:8px;}
+.pricing-hero p{color:var(--text2);font-size:13px;}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:28px;max-width:820px;margin-left:auto;margin-right:auto;}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;}
+.pcard.featured{border-color:var(--accent);background:linear-gradient(160deg,var(--accent-glow),var(--surface));position:relative;}
+.pcard.featured::before{content:'✦ ACTIVE NOW';position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg);font-size:9px;font-weight:700;letter-spacing:0.12em;padding:4px 14px;border-radius:0 0 8px 8px;font-family:var(--display);}
+.pname{font-family:var(--display);font-size:1.1rem;font-weight:700;}
+.pdesc{font-size:12px;color:var(--text2);margin-top:4px;}
+.ptag{margin:14px 0;}
+.ptag .amt{font-family:var(--display);font-size:2.4rem;font-weight:800;color:var(--accent);}
+.ptag .per{font-size:12px;color:var(--text2);}
+.pfeats{list-style:none;display:flex;flex-direction:column;gap:8px;margin:18px 0;}
+.pfeats li{font-size:12px;color:var(--text2);display:flex;align-items:flex-start;gap:8px;}
+.pfeats li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;}
+.pfeats li.no::before{content:'—';color:var(--text3);}
+.pfeats li.no{color:var(--text3);}
+.pay-row{display:flex;align-items:center;gap:6px;margin-top:14px;}
+.payico{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 9px;font-size:10px;color:var(--text2);font-weight:600;}
+.free-strip{display:flex;align-items:center;gap:8px;background:var(--green-dim);border:1px solid rgba(61,214,140,0.25);border-radius:8px;padding:10px 14px;margin-top:16px;}
+.free-strip p{font-size:11px;color:var(--green);}
+
+/* MISC */
+.row{display:flex;gap:10px;}
+.row .field{flex:1;}
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}.mt20{margin-top:20px;}.mt24{margin-top:24px;}
+.muted{color:var(--text2);font-size:11px;}
+.sdiv{height:1px;background:var(--border);margin:18px 0;}
+.ibox{background:var(--blue-dim);border:1px solid rgba(74,158,255,0.2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--blue);margin-top:8px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px;}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--green);border-radius:10px;padding:11px 18px;font-size:12px;color:var(--green);display:flex;align-items:center;gap:8px;z-index:9999;animation:slideUp 0.3s ease;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* DASH VIEWS */
+.dash-view{display:none;animation:fadeIn 0.2s ease;}
+.dash-view.active{display:block;}
+.view-header{margin-bottom:24px;}
+.view-title{font-family:var(--display);font-size:1.4rem;font-weight:700;margin-bottom:4px;}
+.view-sub{font-size:12px;color:var(--text2);}
+.tog-wrap.tog-on{background:var(--green) !important;}
+.tog-wrap.tog-on div{left:21px !important;background:white !important;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SCREEN 1: AUTH ══════════ -->
+<div id="s-auth" class="screen active">
+  <div class="page-center" style="min-height:100vh;">
+    <div class="auth-wrap">
+      <div>
+        <div class="hero-tag">🎯 UPSC · SSC · MPSC · UPPSC · BPSC</div>
+        <h1 class="big-title">Your exam.<br><em>Your plan.</em><br>No excuses.</h1>
+        <p class="big-sub">AI-generated revision schedule built around your syllabus, your weak topics, and your daily life. Not a template. Yours.</p>
+        <div class="astats">
+          <div class="astat"><div class="astat-num">12K+</div><div class="astat-lbl">Aspirants</div></div>
+          <div class="astat"><div class="astat-num">6</div><div class="astat-lbl">Exams</div></div>
+          <div class="astat"><div class="astat-num">₹0</div><div class="astat-lbl">Till Sep 2026</div></div>
+        </div>
+      </div>
+      <div class="auth-card">
+        <div class="auth-title">Create free account</div>
+        <p class="auth-sub">Login takes 10 seconds. Plan takes 2 minutes.</p>
+        <button class="btn btn-google" onclick="doLogin()">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+        <button class="btn btn-fb" onclick="doLogin()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Continue with Facebook
+        </button>
+        <div class="divider">or</div>
+        <div class="field"><label>Email</label><input type="email" placeholder="yourname@gmail.com"></div>
+        <button class="btn btn-primary" onclick="doLogin()">Continue with Email →</button>
+        <div class="free-badge mt16">
+          <div class="fdot"></div>
+          <p><strong>Free until September 2026</strong><br><span>Then ₹999 one-time. No subscription ever.</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN 2: EXAM PROFILE ══════════ -->
+<div id="s-exam" class="screen">
+  <div class="topbar">
+    <div class="logo">Prep<span>Path</span></div>
+    <div class="step-dots"><div class="sdot active"></div><div class="sdot"></div><div class="sdot"></div></div>
+    <div class="user-pill"><div class="uavatar">A</div>Aspirant</div>
+  </div>
+  <div class="page-center" style="padding-top:32px;padding-bottom:32px;align-items:flex-start;">
+    <div class="card card-wide" style="margin:0 auto;">
+      <span class="screen-tag">Step 1 of 3 — Exam Profile</span>
+      <div class="prog-bar"><div class="prog-fill" style="width:33%"></div></div>
+      <div class="card-title">Which exam are you targeting?</div>
+      <p class="card-sub">We'll automatically load official syllabus and exam dates. <em>No need to enter dates manually.</em></p>
+
+      <div class="field">
+        <label>Select Your Exam <span class="req">*</span></label>
+        <div class="rgrid c2">
+          <label class="rbtn" onclick="selR(this,'exam')"><input type="radio" name="exam"><div class="rdot"></div><div class="rlabel"><strong>UPSC CSE</strong><small>Civil Services Examination</small></div></label>
+          <label class="rbtn" onclick="selR(this,'exam')"><input type="radio" name="exam"><div class="rdot"></div><div class="rlabel"><strong>UPSC CAPF</strong><small>Central Armed Police Forces</small></div></label>
+          <label class="rbtn" onclick="selR(this,'exam')"><input type="radio" name="exam"><div class="rdot"></div><div class="rlabel"><strong>SSC CGL</strong><small>Combined Graduate Level</small></div></label>
+          <label class="rbtn" onclick="selR(this,'exam')"><input type="radio" name="exam"><div class="rdot"></div><div class="rlabel"><strong>MPSC</strong><small>Maharashtra PSC</small></div></label>
+          <label class="rbtn" onclick="selR(this,'exam')"><input type="radio" name="exam"><div class="rdot"></div><div class="rlabel"><strong>UPPSC</strong><small>Uttar Pradesh PSC</small></div></label>
+          <label class="rbtn" onclick="selR(this,'exam')"><input type="radio" name="exam"><div class="rdot"></div><div class="rlabel"><strong>BPSC</strong><small>Bihar PSC</small></div></label>
+        </div>
+      </div>
+
+      <div class="row mt16">
+        <div class="field">
+          <label>Target Year <span class="req">*</span></label>
+          <select id="yr">
+            <option value="">Select year</option>
+            <option>2025</option><option>2026</option><option>2027</option><option>2028</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Attempt Number <span class="req">*</span></label>
+          <select id="atnum" onchange="toggleRetry(this.value)">
+            <option value="">Select</option>
+            <option value="1">1st attempt — Fresh start</option>
+            <option value="2">2nd attempt — Retry</option>
+            <option value="3">3rd attempt — Retry</option>
+            <option value="4">4th or more attempt</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="retry-sec" class="field mt12" style="display:none;">
+        <label>What happened last time? <span class="req">*</span></label>
+        <div class="rgrid c2">
+          <label class="rbtn" onclick="selR(this,'retry')"><input type="radio" name="retry"><div class="rdot"></div><div class="rlabel"><strong>Didn't clear Prelims</strong><small>Extra focus: GS + CSAT</small></div></label>
+          <label class="rbtn" onclick="selR(this,'retry')"><input type="radio" name="retry"><div class="rdot"></div><div class="rlabel"><strong>Cleared Prelims, failed Mains</strong><small>Extra focus: answer writing + depth</small></div></label>
+          <label class="rbtn" onclick="selR(this,'retry')"><input type="radio" name="retry"><div class="rdot"></div><div class="rlabel"><strong>Cleared Mains, failed Interview</strong><small>Extra focus: personality + current affairs</small></div></label>
+          <label class="rbtn" onclick="selR(this,'retry')"><input type="radio" name="retry"><div class="rdot"></div><div class="rlabel"><strong>Got rank, not preferred service</strong><small>Score improvement focus</small></div></label>
+        </div>
+      </div>
+
+      <div class="field mt16">
+        <label>Current Stage of Preparation</label>
+        <div class="rgrid c3">
+          <label class="rbtn" onclick="selR(this,'stage')"><input type="radio" name="stage"><div class="rdot"></div><div class="rlabel"><strong>Just started</strong><small>0–3 months in</small></div></label>
+          <label class="rbtn" onclick="selR(this,'stage')"><input type="radio" name="stage"><div class="rdot"></div><div class="rlabel"><strong>Mid-prep</strong><small>3–12 months in</small></div></label>
+          <label class="rbtn" onclick="selR(this,'stage')"><input type="radio" name="stage"><div class="rdot"></div><div class="rlabel"><strong>Final stretch</strong><small>Under 3 months left</small></div></label>
+        </div>
+      </div>
+
+      <div class="field mt16">
+        <label>Mode of Preparation</label>
+        <div class="rgrid c2">
+          <label class="rbtn" onclick="selR(this,'mode')"><input type="radio" name="mode"><div class="rdot"></div><div class="rlabel"><strong>Self-study</strong><small>No formal coaching</small></div></label>
+          <label class="rbtn" onclick="selR(this,'mode')"><input type="radio" name="mode"><div class="rdot"></div><div class="rlabel"><strong>Offline coaching</strong><small>Mukherjee Nagar / city institute</small></div></label>
+          <label class="rbtn" onclick="selR(this,'mode')"><input type="radio" name="mode"><div class="rdot"></div><div class="rlabel"><strong>Online coaching</strong><small>Drishti / Vision / Unacademy etc.</small></div></label>
+          <label class="rbtn" onclick="selR(this,'mode')"><input type="radio" name="mode"><div class="rdot"></div><div class="rlabel"><strong>Working professional</strong><small>Preparing part-time alongside job</small></div></label>
+        </div>
+      </div>
+
+      <div class="field mt16">
+        <label>Optional Subject (UPSC Mains)</label>
+        <select>
+          <option>Not applicable / Not decided yet</option>
+          <option>History</option><option>Geography</option><option>Political Science & IR</option>
+          <option>Sociology</option><option>Philosophy</option><option>Psychology</option>
+          <option>Public Administration</option><option>Economics</option><option>Mathematics</option>
+          <option>Physics</option><option>Chemistry</option><option>Zoology</option><option>Botany</option>
+          <option>Medical Science</option><option>Law</option><option>Hindi Literature</option><option>English Literature</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary mt20" onclick="goTo('s-subjects')">Continue to Subject Assessment →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN 3: SUBJECTS ══════════ -->
+<div id="s-subjects" class="screen">
+  <div class="topbar">
+    <div class="logo">Prep<span>Path</span></div>
+    <div class="step-dots"><div class="sdot done"></div><div class="sdot active"></div><div class="sdot"></div></div>
+    <div class="user-pill"><div class="uavatar">A</div>Aspirant</div>
+  </div>
+  <div class="page-center" style="padding-top:32px;padding-bottom:32px;align-items:flex-start;">
+    <div class="card card-xl" style="margin:0 auto;">
+      <span class="screen-tag">Step 2 of 3 — Subject Assessment</span>
+      <div class="prog-bar"><div class="prog-fill" style="width:66%"></div></div>
+      <div class="card-title">Rate your subjects honestly</div>
+      <p class="card-sub">The AI gives <em>more revision time to your weak areas</em> and lighter cycles to your strong ones. Honest ratings = better plan.</p>
+
+      <div class="ibox">ℹ️ &nbsp;Strong = you can revise fast from notes. &nbsp;Neutral = decent but gaps exist. &nbsp;Weak = needs full re-read and extra sessions.</div>
+
+      <div class="subj-grid" id="subj-list"></div>
+
+      <div class="sdiv"></div>
+
+      <div class="field">
+        <label>Which subjects have you completed at least one full reading?</label>
+        <div class="rgrid c3" id="read-grid" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="field mt16">
+        <label>Any specific topics you want extra focus on? (Optional)</label>
+        <textarea rows="3" style="resize:none;" placeholder="e.g. Monetary Policy, Biodiversity hotspots, Constitutional Amendments, Probability (CSAT)..."></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:22px;">
+        <button class="btn btn-ghost" onclick="goTo('s-exam')">← Back</button>
+        <button class="btn btn-primary" onclick="goTo('s-schedule')" style="flex:1;">Continue to Study Schedule →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN 4: SCHEDULE ══════════ -->
+<div id="s-schedule" class="screen">
+  <div class="topbar">
+    <div class="logo">Prep<span>Path</span></div>
+    <div class="step-dots"><div class="sdot done"></div><div class="sdot done"></div><div class="sdot active"></div></div>
+    <div class="user-pill"><div class="uavatar">A</div>Aspirant</div>
+  </div>
+  <div class="page-center" style="padding-top:32px;padding-bottom:32px;align-items:flex-start;">
+    <div class="card card-wide" style="margin:0 auto;">
+      <span class="screen-tag">Step 3 of 3 — Study Schedule</span>
+      <div class="prog-bar"><div class="prog-fill" style="width:99%"></div></div>
+      <div class="card-title">Build your daily routine</div>
+      <p class="card-sub">Your plan fits around your life. Be realistic — <em>a plan you follow beats a perfect plan you abandon.</em></p>
+
+      <div class="field">
+        <label>Study Days <span class="req">*</span></label>
+        <div class="day-togs">
+          <div class="dtog on" onclick="this.classList.toggle('on')">Mon</div>
+          <div class="dtog on" onclick="this.classList.toggle('on')">Tue</div>
+          <div class="dtog on" onclick="this.classList.toggle('on')">Wed</div>
+          <div class="dtog on" onclick="this.classList.toggle('on')">Thu</div>
+          <div class="dtog on" onclick="this.classList.toggle('on')">Fri</div>
+          <div class="dtog on" onclick="this.classList.toggle('on')">Sat</div>
+          <div class="dtog" onclick="this.classList.toggle('on')">Sun</div>
+        </div>
+        <p class="muted mt8">Tap to toggle — grey = rest day</p>
+      </div>
+
+      <div class="tgrid mt16">
+        <div class="tfield"><label>Wake Up Time</label><select><option>4:00 AM</option><option>4:30 AM</option><option>5:00 AM</option><option selected>5:30 AM</option><option>6:00 AM</option><option>6:30 AM</option><option>7:00 AM</option><option>7:30 AM</option><option>8:00 AM</option></select></div>
+        <div class="tfield"><label>Sleep Time</label><select><option>9:00 PM</option><option>9:30 PM</option><option selected>10:00 PM</option><option>10:30 PM</option><option>11:00 PM</option><option>11:30 PM</option><option>12:00 AM</option></select></div>
+        <div class="tfield"><label>Morning Study Session</label><select><option>1 hour</option><option>2 hours</option><option selected>3 hours</option><option>4 hours</option><option>5 hours</option><option>6 hours</option></select></div>
+        <div class="tfield"><label>Evening Study Session</label><select><option>1 hour</option><option>2 hours</option><option selected>3 hours</option><option>4 hours</option><option>5 hours</option></select></div>
+      </div>
+
+      <div class="field mt20">
+        <label>Fixed Daily Breaks & Commitments</label>
+        <p class="muted" style="margin-bottom:10px;">Lunch, gym, namaz, coaching class, family time — these slots stay protected in your plan</p>
+        <div class="break-list" id="blist">
+          <div class="break-item"><span>🍽️ Lunch break — 1 hour</span><button class="bdel" onclick="this.parentElement.remove()">✕</button></div>
+        </div>
+        <div class="add-row">
+          <div class="field" style="margin:0;"><input type="text" id="bname" placeholder="Break name (Gym, Coaching, Namaz...)"></div>
+          <div class="field" style="margin:0;"><select id="bdur"><option>30 min</option><option>45 min</option><option>1 hour</option><option>1.5 hours</option><option>2 hours</option><option>3 hours</option></select></div>
+          <button class="btn btn-ghost" style="margin:0;padding:11px 14px;" onclick="addBreak()">+ Add</button>
+        </div>
+      </div>
+
+      <div class="field mt16">
+        <label>Upcoming Events to Block Off (Optional)</label>
+        <textarea rows="2" style="resize:none;" placeholder="e.g. Wedding 15–18 March, Travel 2nd week of April, Festival holidays..."></textarea>
+      </div>
+
+      <div class="field mt16">
+        <label>Study Intensity</label>
+        <div class="rgrid c3">
+          <label class="rbtn" onclick="selR(this,'intensity')"><input type="radio" name="intensity"><div class="rdot"></div><div class="rlabel"><strong>Moderate</strong><small>Sustainable pace</small></div></label>
+          <label class="rbtn sel" onclick="selR(this,'intensity')"><input type="radio" name="intensity" checked><div class="rdot" style="border-color:var(--accent);background:var(--accent);"><div style="width:5px;height:5px;border-radius:50%;background:var(--bg);"></div></div><div class="rlabel"><strong>Focused</strong><small>Serious mode</small></div></label>
+          <label class="rbtn" onclick="selR(this,'intensity')"><input type="radio" name="intensity"><div class="rdot"></div><div class="rlabel"><strong>Intensive</strong><small>Maximum output</small></div></label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:24px;">
+        <button class="btn btn-ghost" onclick="goTo('s-subjects')">← Back</button>
+        <button class="btn btn-primary" onclick="startGenerate()" style="flex:1;">✦ Generate My Revision Plan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN 5: LOADING ══════════ -->
+<div id="s-loading" class="screen">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+    <div class="load-wrap">
+      <div class="lring"></div>
+      <div class="load-title">Building your plan...</div>
+      <p class="muted" style="margin-top:-16px;text-align:center;">AI is crunching your inputs — about 20–30 seconds</p>
+      <div class="load-steps">
+        <div class="lstep" id="ls0"><span>📋</span> Loading UPSC CSE 2026 syllabus</div>
+        <div class="lstep" id="ls1"><span>🔍</span> Mapping your weak & strong subjects</div>
+        <div class="lstep" id="ls2"><span>📅</span> Calculating days until Prelims</div>
+        <div class="lstep" id="ls3"><span>🧠</span> Applying spaced repetition logic</div>
+        <div class="lstep" id="ls4"><span>⚡</span> Generating your personalised plan</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN 6: DASHBOARD ══════════ -->
+<div id="s-dashboard" class="screen">
+  <div class="topbar">
+    <div class="logo">Prep<span>Path</span></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-ghost" style="padding:7px 14px;font-size:11px;" onclick="goTo('s-pricing')">💎 Pricing</button>
+      <div class="user-pill"><div class="uavatar">A</div>Aspirant &nbsp;|&nbsp; UPSC CSE 2026</div>
+    </div>
+  </div>
+  <div class="dash-layout">
+    <div class="sidebar">
+      <div class="sb-section">Overview</div>
+      <div class="sb-item active" onclick="showView('v-dashboard',this)"><span class="sb-icon">📊</span>Dashboard</div>
+      <div class="sb-item" onclick="showView('v-plan',this)"><span class="sb-icon">📅</span>My Plan</div>
+      <div class="sb-item" onclick="showView('v-today',this)"><span class="sb-icon">✅</span>Today's Tasks<span class="sb-badge">3</span></div>
+      <div class="sb-section">Tools</div>
+      <div class="sb-item" onclick="showView('v-progress',this)"><span class="sb-icon">📈</span>Subject Progress</div>
+      <div class="sb-item" onclick="showView('v-log',this)"><span class="sb-icon">🔁</span>Revision Log</div>
+      <div class="sb-item" onclick="showView('v-ca',this)"><span class="sb-icon">📰</span>Current Affairs<span class="sb-badge gold">Soon</span></div>
+      <div class="sb-item" onclick="showView('v-writing',this)"><span class="sb-icon">📝</span>Answer Writing<span class="sb-badge gold">Soon</span></div>
+      <div class="sb-section">Account</div>
+      <div class="sb-item" onclick="showView('v-reschedule',this)"><span class="sb-icon">⚙️</span>Reschedule Plan</div>
+      <div class="sb-item" onclick="showView('v-reminders',this)"><span class="sb-icon">🔔</span>Reminders</div>
+      <div class="sb-item" onclick="goTo('s-pricing')"><span class="sb-icon">💎</span>Pricing</div>
+    </div>
+    <div class="dash-main">
+
+      <!-- ▸ VIEW: DASHBOARD (default) -->
+      <div class="dash-view active" id="v-dashboard">
+        <div class="dash-header">
+          <div>
+            <div class="dash-greeting">Good morning, <span>Aspirant</span> 👋</div>
+            <div class="dash-meta">UPSC CSE 2026 &nbsp;·&nbsp; <strong id="ddays">—</strong> days to Prelims &nbsp;·&nbsp; Week 1 of your plan</div>
+          </div>
+          <button class="btn btn-ghost" style="font-size:11px;padding:8px 14px;" onclick="showView('v-reschedule',null)">Missed a day? Reschedule</button>
+        </div>
+        <div class="stats-strip">
+          <div class="sc hl"><div class="sc-lbl">Days to Prelims</div><div class="sc-val" id="stat-days">—</div><div class="sc-sub">Stay consistent</div></div>
+          <div class="sc"><div class="sc-lbl">Topics This Week</div><div class="sc-val">0 / 14</div><div class="sc-sub">GS + Current Affairs</div></div>
+          <div class="sc"><div class="sc-lbl">Revision Cycles</div><div class="sc-val">0</div><div class="sc-sub">Target: 3 per topic</div></div>
+          <div class="sc"><div class="sc-lbl">Study Streak</div><div class="sc-val">Day 1</div><div class="sc-sub">🔥 Build momentum</div></div>
+        </div>
+        <div class="today-panel">
+          <div class="tp-head">
+            <div class="tp-title">⚡ Today's Schedule</div>
+            <span style="font-size:11px;color:var(--text2);" id="today-lbl"></span>
+          </div>
+          <div class="tt-list" id="today-list"></div>
+        </div>
+        <div class="tab-bar">
+          <button class="tbtn active" onclick="switchTab('weekly',this)">📅 Weekly View</button>
+          <button class="tbtn" onclick="switchTab('list',this)">📋 Day-by-Day</button>
+          <button class="tbtn" onclick="switchTab('subjects',this)">📚 Subject Coverage</button>
+        </div>
+        <div class="tab-c active" id="tab-weekly">
+          <div class="week-nav">
+            <button onclick="showToast('Week navigation in full version!')">← Prev</button>
+            <span style="font-size:12px;color:var(--text2);" id="week-lbl">This Week</span>
+            <button onclick="showToast('Week navigation in full version!')">Next →</button>
+          </div>
+          <div class="week-grid" id="week-grid"></div>
+        </div>
+        <div class="tab-c" id="tab-list"><div class="plan-list" id="plan-list"></div></div>
+        <div class="tab-c" id="tab-subjects"><div class="sbdown" id="sbdown"></div></div>
+      </div>
+
+      <!-- ▸ VIEW: MY PLAN -->
+      <div class="dash-view" id="v-plan">
+        <div class="view-header"><div class="view-title">📅 My Full Plan</div><div class="view-sub">Your complete AI-generated revision schedule</div></div>
+        <div class="tab-bar">
+          <button class="tbtn active" onclick="switchTab2('p-weekly',this)">📅 Weekly View</button>
+          <button class="tbtn" onclick="switchTab2('p-list',this)">📋 Day-by-Day</button>
+        </div>
+        <div class="tab-c active" id="p-weekly">
+          <div class="week-nav">
+            <button onclick="showToast('Week navigation in full version!')">← Prev</button>
+            <span style="font-size:12px;color:var(--text2);">This Week</span>
+            <button onclick="showToast('Week navigation in full version!')">Next →</button>
+          </div>
+          <div class="week-grid" id="plan-week-grid"></div>
+        </div>
+        <div class="tab-c" id="p-list"><div class="plan-list" id="plan-list2"></div></div>
+      </div>
+
+      <!-- ▸ VIEW: TODAY'S TASKS -->
+      <div class="dash-view" id="v-today">
+        <div class="view-header"><div class="view-title">✅ Today's Tasks</div><div class="view-sub" id="today-view-date"></div></div>
+        <div class="today-panel" style="border-color:var(--border);">
+          <div class="tt-list" id="today-list2"></div>
+        </div>
+        <div style="margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
+          <div style="font-family:var(--display);font-weight:700;margin-bottom:14px;font-size:1rem;">📊 Today's Progress</div>
+          <div id="today-progress-bars"></div>
+        </div>
+      </div>
+
+      <!-- ▸ VIEW: SUBJECT PROGRESS -->
+      <div class="dash-view" id="v-progress">
+        <div class="view-header"><div class="view-title">📈 Subject Progress</div><div class="view-sub">Track coverage across all GS papers and subjects</div></div>
+        <div class="sbdown" id="sbdown2"></div>
+        <div style="margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;">
+          <div style="font-family:var(--display);font-weight:700;margin-bottom:12px;">Revision Cycle Planner</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Each topic should be revised 3 times before the exam. First read → Notes → Quick revision.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;"><div style="font-family:var(--display);font-size:1.4rem;font-weight:700;color:var(--accent);">0</div><div style="font-size:10px;color:var(--text2);margin-top:3px;">First reads done</div></div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;"><div style="font-family:var(--display);font-size:1.4rem;font-weight:700;color:var(--blue);">0</div><div style="font-size:10px;color:var(--text2);margin-top:3px;">Second reads done</div></div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;"><div style="font-family:var(--display);font-size:1.4rem;font-weight:700;color:var(--green);">0</div><div style="font-size:10px;color:var(--text2);margin-top:3px;">Final revisions done</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▸ VIEW: REVISION LOG -->
+      <div class="dash-view" id="v-log">
+        <div class="view-header"><div class="view-title">🔁 Revision Log</div><div class="view-sub">Track what you've studied and when</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;">
+          <div style="font-size:2rem;margin-bottom:12px;">📋</div>
+          <div style="font-family:var(--display);font-weight:700;margin-bottom:8px;">No entries yet</div>
+          <p style="font-size:12px;color:var(--text2);max-width:320px;margin:0 auto;">As you mark tasks complete in Today's Tasks, they'll appear here with timestamps. Your full study history in one place.</p>
+          <button class="btn btn-primary mt16" style="width:auto;padding:10px 24px;" onclick="showView('v-today',null)">Go to Today's Tasks →</button>
+        </div>
+      </div>
+
+      <!-- ▸ VIEW: CURRENT AFFAIRS (coming soon) -->
+      <div class="dash-view" id="v-ca">
+        <div class="view-header"><div class="view-title">📰 Current Affairs Connector</div><div class="view-sub">Auto-map daily news to your UPSC syllabus</div></div>
+        <div style="background:var(--surface);border:1px solid rgba(232,197,71,0.2);border-radius:12px;padding:32px;text-align:center;">
+          <div style="display:inline-block;background:var(--accent-dim);border:1px solid rgba(232,197,71,0.3);border-radius:20px;padding:4px 14px;font-size:10px;color:var(--accent);font-weight:700;letter-spacing:0.1em;margin-bottom:16px;">COMING SOON</div>
+          <div style="font-family:var(--display);font-size:1.3rem;font-weight:700;margin-bottom:10px;">The Hindu → Syllabus in one click</div>
+          <p style="font-size:12px;color:var(--text2);max-width:400px;margin:0 auto 20px;">Paste any news article. AI maps it to your UPSC syllabus topic, generates 3 potential exam questions, and adds it to your personal current affairs bank.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:480px;margin:0 auto;">
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;"><div style="font-size:1.2rem;margin-bottom:6px;">📥</div><div style="font-size:11px;color:var(--text2);">Paste article or URL</div></div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;"><div style="font-size:1.2rem;margin-bottom:6px;">🏷️</div><div style="font-size:11px;color:var(--text2);">Auto-tagged to syllabus</div></div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;"><div style="font-size:1.2rem;margin-bottom:6px;">❓</div><div style="font-size:11px;color:var(--text2);">3 exam questions generated</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▸ VIEW: ANSWER WRITING (coming soon) -->
+      <div class="dash-view" id="v-writing">
+        <div class="view-header"><div class="view-title">📝 Answer Writing Evaluator</div><div class="view-sub">Get your Mains answers evaluated like a real UPSC examiner</div></div>
+        <div style="background:var(--surface);border:1px solid rgba(232,197,71,0.2);border-radius:12px;padding:32px;text-align:center;">
+          <div style="display:inline-block;background:var(--accent-dim);border:1px solid rgba(232,197,71,0.3);border-radius:20px;padding:4px 14px;font-size:10px;color:var(--accent);font-weight:700;letter-spacing:0.1em;margin-bottom:16px;">COMING SOON — ₹999 PLAN</div>
+          <div style="font-family:var(--display);font-size:1.3rem;font-weight:700;margin-bottom:10px;">Write. Submit. Get scored.</div>
+          <p style="font-size:12px;color:var(--text2);max-width:400px;margin:0 auto 20px;">Type your Mains answer. AI evaluates it on UPSC rubric — structure, keyword density, introduction quality, conclusion, word limit adherence — and gives you a score out of 20 with specific feedback.</p>
+          <button class="btn btn-primary mt8" style="width:auto;padding:10px 24px;" onclick="goTo('s-pricing')">See Pricing →</button>
+        </div>
+      </div>
+
+      <!-- ▸ VIEW: RESCHEDULE -->
+      <div class="dash-view" id="v-reschedule">
+        <div class="view-header"><div class="view-title">⚙️ Reschedule Plan</div><div class="view-sub">Missed days? Life happened? Adjust your plan without losing progress.</div></div>
+        <div style="display:grid;gap:12px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
+            <div style="font-weight:600;margin-bottom:8px;">📅 Mark Missed Days</div>
+            <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">Select days you missed studying. The remaining plan will automatically redistribute.</p>
+            <div class="day-togs" style="margin-bottom:14px;">
+              <div class="dtog" onclick="this.classList.toggle('on')" style="background:var(--red-dim);border-color:var(--red);color:var(--red);">Mon</div>
+              <div class="dtog" onclick="this.classList.toggle('on')">Tue</div>
+              <div class="dtog" onclick="this.classList.toggle('on')">Wed</div>
+              <div class="dtog" onclick="this.classList.toggle('on')">Thu</div>
+              <div class="dtog" onclick="this.classList.toggle('on')">Fri</div>
+              <div class="dtog" onclick="this.classList.toggle('on')">Sat</div>
+              <div class="dtog" onclick="this.classList.toggle('on')">Sun</div>
+            </div>
+            <button class="btn btn-primary" style="width:auto;padding:10px 22px;" onclick="showToast('✅ Plan rescheduled! Topics redistributed across remaining days.')">Apply Reschedule</button>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
+            <div style="font-weight:600;margin-bottom:8px;">🚫 Block Off Upcoming Days</div>
+            <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Holiday, travel, or exam? Block dates and we'll plan around them.</p>
+            <textarea rows="3" style="resize:none;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 12px;outline:none;" placeholder="e.g. 20–25 March (travel), April 1 (exam)"></textarea>
+            <button class="btn btn-primary mt8" style="width:auto;padding:10px 22px;" onclick="showToast('✅ Dates blocked and plan updated!')">Block Dates</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▸ VIEW: REMINDERS -->
+      <div class="dash-view" id="v-reminders">
+        <div class="view-header"><div class="view-title">🔔 Study Reminders</div><div class="view-sub">Set alerts so you never miss a session</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;font-weight:500;">Morning session reminder</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">Get notified before your morning study block</div></div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <select style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;outline:none;"><option>5:15 AM</option><option>5:30 AM</option><option selected>5:45 AM</option><option>6:00 AM</option></select>
+              <div onclick="this.classList.toggle('tog-on');showToast(this.classList.contains('tog-on')?'Morning reminder ON':'Morning reminder OFF')" style="width:40px;height:22px;background:var(--border);border-radius:11px;cursor:pointer;position:relative;transition:background 0.2s;" class="tog-wrap"><div style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--text2);transition:all 0.2s;"></div></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:13px;font-weight:500;">Evening session reminder</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">Reminder before your evening block</div></div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <select style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;outline:none;"><option>3:45 PM</option><option selected>4:00 PM</option><option>4:15 PM</option><option>4:30 PM</option></select>
+              <div onclick="this.classList.toggle('tog-on');showToast(this.classList.contains('tog-on')?'Evening reminder ON':'Evening reminder OFF')" style="width:40px;height:22px;background:var(--border);border-radius:11px;cursor:pointer;position:relative;transition:background 0.2s;" class="tog-wrap"><div style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--text2);transition:all 0.2s;"></div></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div><div style="font-size:13px;font-weight:500;">Daily current affairs reminder</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">Nudge to read The Hindu every morning</div></div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <select style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;outline:none;"><option selected>7:00 AM</option><option>7:30 AM</option><option>8:00 AM</option></select>
+              <div onclick="this.classList.toggle('tog-on');showToast(this.classList.contains('tog-on')?'CA reminder ON':'CA reminder OFF')" style="width:40px;height:22px;background:var(--border);border-radius:11px;cursor:pointer;position:relative;transition:background 0.2s;" class="tog-wrap"><div style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--text2);transition:all 0.2s;"></div></div>
+            </div>
+          </div>
+          <button class="btn btn-primary mt8" style="width:auto;padding:10px 22px;" onclick="showToast('✅ Reminder preferences saved!')">Save Reminders</button>
+        </div>
+      </div>
+
+    </div><!-- end dash-main -->
+  </div>
+</div>
+
+<!-- ══════════ SCREEN 7: PRICING ══════════ -->
+<div id="s-pricing" class="screen">
+  <div class="topbar">
+    <div class="logo">Prep<span>Path</span></div>
+    <div></div>
+    <button class="btn btn-ghost" style="font-size:11px;padding:7px 14px;" onclick="goTo('s-dashboard')">← Back to Dashboard</button>
+  </div>
+  <div class="page-center" style="padding:40px 20px;align-items:flex-start;">
+    <div style="width:100%;max-width:860px;margin:0 auto;">
+      <div class="pricing-hero">
+        <h1>Simple, honest pricing.</h1>
+        <p>No subscription traps. No hidden fees. One payment, lifetime access.</p>
+      </div>
+      <div class="pgrid">
+        <div class="pcard featured">
+          <div class="pname">Free Access</div>
+          <div class="pdesc">Full product, zero cost — right now</div>
+          <div class="ptag"><span class="amt">₹0</span><span class="per"> &nbsp;until September 2026</span></div>
+          <ul class="pfeats">
+            <li>AI-generated personalised revision plan</li>
+            <li>UPSC + State PSC full syllabus mapping</li>
+            <li>Weekly calendar + Day list + Subject view</li>
+            <li>Missed day auto-rescheduling</li>
+            <li>Subject strength & progress tracker</li>
+            <li>Current Affairs Connector (coming soon)</li>
+          </ul>
+          <div class="free-strip"><div class="fdot"></div><p>🟢 Completely free until 30 September 2026. No card needed.</p></div>
+          <button class="btn btn-primary mt16" onclick="goTo('s-dashboard')">Start for Free Now →</button>
+        </div>
+        <div class="pcard">
+          <div class="pname">Lifetime Access</div>
+          <div class="pdesc">Available from October 2026 onwards</div>
+          <div class="ptag"><span class="amt">₹999</span><span class="per"> &nbsp;one-time payment</span></div>
+          <ul class="pfeats">
+            <li>Everything in Free — forever</li>
+            <li>Current Affairs Connector module</li>
+            <li>Answer writing evaluator (UPSC Mains style)</li>
+            <li>PYQ pattern analyser (10 years data)</li>
+            <li>Priority email support</li>
+            <li class="no">No monthly subscription, ever</li>
+          </ul>
+          <div style="margin-top:16px;">
+            <div class="muted" style="margin-bottom:8px;">Available payment methods from October 2026</div>
+            <div class="pay-row">
+              <div class="payico">UPI</div><div class="payico">Visa</div><div class="payico">Mastercard</div><div class="payico">RuPay</div>
+            </div>
+          </div>
+          <button class="btn btn-primary mt16" style="background:var(--surface3);color:var(--text2);cursor:default;" disabled>Available from October 2026</button>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <p class="muted">₹999 is less than one month at any coaching centre. And this plan is actually built for you.</p>
+        <p class="muted mt8">Questions? Write to us: <span style="color:var(--accent);">hello@preppath.in</span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" style="display:none;">✓ <span id="toast-msg"></span></div>
+
+<script>
+// ─── SUBJECTS DATA ───
+const SUBJS = [
+  {key:'gs1',name:'GS Paper I',sub:'History, Geography, Society',color:'#ff9f43'},
+  {key:'gs2',name:'GS Paper II',sub:'Polity, Governance, IR',color:'#4a9eff'},
+  {key:'gs3',name:'GS Paper III',sub:'Economy, Environment, S&T, Security',color:'#a29bfe'},
+  {key:'gs4',name:'GS Paper IV',sub:'Ethics, Integrity, Aptitude',color:'#fd79a8'},
+  {key:'csat',name:'CSAT',sub:'Paper II — Qualifying (33% cutoff)',color:'#fdcb6e'},
+  {key:'ca',name:'Current Affairs',sub:'Daily The Hindu + PIB',color:'#e17055'},
+  {key:'essay',name:'Essay Paper',sub:'Mains — 250 marks',color:'#81ecec'},
+  {key:'opt',name:'Optional Subject',sub:'As selected earlier',color:'#55efc4'},
+];
+const ratings = {};
+SUBJS.forEach(s => ratings[s.key] = 'neutral');
+
+// ─── NAVIGATION ───
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='s-subjects') buildSubjList();
+  if(id==='s-dashboard') buildDash();
+}
+function doLogin(){ goTo('s-exam'); }
+
+// ─── RADIO SELECT ───
+function selR(el, grp) {
+  document.querySelectorAll(`[onclick*="'${grp}'"]`).forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function toggleRetry(v){
+  document.getElementById('retry-sec').style.display=(v&&v!=='1')?'block':'none';
+}
+
+// ─── SUBJECT LIST ───
+function buildSubjList(){
+  const g=document.getElementById('subj-list'), rg=document.getElementById('read-grid');
+  g.innerHTML=''; rg.innerHTML='';
+  SUBJS.forEach(s=>{
+    const r=ratings[s.key]||'neutral';
+    g.innerHTML+=`<div class="subj-row">
+      <div class="subj-name">${s.name}<small>${s.sub}</small></div>
+      <div class="spills">
+        <div class="sp ${r==='strong'?'s-strong':''}" onclick="setRating('${s.key}','strong',this)">💪 Strong</div>
+        <div class="sp ${r==='neutral'?'s-neutral':''}" onclick="setRating('${s.key}','neutral',this)">😐 Neutral</div>
+        <div class="sp ${r==='weak'?'s-weak':''}" onclick="setRating('${s.key}','weak',this)">⚠️ Weak</div>
+      </div>
+    </div>`;
+    rg.innerHTML+=`<label class="rbtn" onclick="this.classList.toggle('sel')">
+      <div class="rdot"></div><div class="rlabel"><strong>${s.name}</strong></div>
+    </label>`;
+  });
+}
+function setRating(k,v,el){
+  ratings[k]=v;
+  const row=el.closest('.subj-row');
+  row.querySelectorAll('.sp').forEach(p=>p.className='sp');
+  if(v==='strong') el.className='sp s-strong';
+  else if(v==='neutral') el.className='sp s-neutral';
+  else el.className='sp s-weak';
+}
+
+// ─── BREAKS ───
+function addBreak(){
+  const n=document.getElementById('bname').value.trim();
+  const d=document.getElementById('bdur').value;
+  if(!n){showToast('Enter a break name first');return;}
+  const li=document.createElement('div');
+  li.className='break-item';
+  li.innerHTML=`<span>⏸️ ${n} — ${d}</span><button class="bdel" onclick="this.parentElement.remove()">✕</button>`;
+  document.getElementById('blist').appendChild(li);
+  document.getElementById('bname').value='';
+}
+
+// ─── GENERATE PLAN ───
+let planData=null;
+async function startGenerate(){
+  goTo('s-loading');
+  const steps=['ls0','ls1','ls2','ls3','ls4'];
+  for(let i=0;i<steps.length;i++){
+    await wait(700);
+    document.getElementById(steps[i]).className='lstep active';
+    if(i>0) document.getElementById(steps[i-1]).className='lstep done';
+  }
+  // Build prompt
+  const weak=Object.entries(ratings).filter(([k,v])=>v==='weak').map(([k])=>SUBJS.find(s=>s.key===k)?.name||k).join(', ')||'none';
+  const strong=Object.entries(ratings).filter(([k,v])=>v==='strong').map(([k])=>SUBJS.find(s=>s.key===k)?.name||k).join(', ')||'none';
+  const prompt=`You are an expert UPSC revision planner. Create a personalized 7-day revision plan for a UPSC CSE 2026 aspirant.
+
+Weak subjects (need more time): ${weak}
+Strong subjects (lighter cycles ok): ${strong}
+Daily study: 6 hours (3h morning, 3h evening)
+Study days: Monday–Saturday (Sunday = lighter revision)
+
+Return ONLY valid JSON, no markdown:
+{
+  "summary": "brief strategy note",
+  "weeklyPlan": [
+    {"day":"Monday","tasks":[
+      {"subject":"GS Paper I","topic":"specific UPSC topic here","duration":"90","type":"gs1","session":"Morning"},
+      {"subject":"GS Paper II","topic":"specific UPSC topic here","duration":"90","type":"gs2","session":"Morning"},
+      {"subject":"Current Affairs","topic":"The Hindu + PIB reading and note-making","duration":"60","type":"ca","session":"Evening"},
+      {"subject":"GS Paper III","topic":"specific UPSC topic here","duration":"120","type":"gs3","session":"Evening"}
+    ]}
+  ],
+  "subjectCoverage":[
+    {"key":"gs1","name":"GS Paper I","color":"#ff9f43","totalTopics":24,"weeksAllocated":8,"strength":"neutral"},
+    {"key":"gs2","name":"GS Paper II","color":"#4a9eff","totalTopics":20,"weeksAllocated":6,"strength":"neutral"},
+    {"key":"gs3","name":"GS Paper III","color":"#a29bfe","totalTopics":18,"weeksAllocated":7,"strength":"neutral"},
+    {"key":"gs4","name":"GS Paper IV","color":"#fd79a8","totalTopics":10,"weeksAllocated":4,"strength":"neutral"},
+    {"key":"csat","name":"CSAT","color":"#fdcb6e","totalTopics":8,"weeksAllocated":2,"strength":"strong"},
+    {"key":"ca","name":"Current Affairs","color":"#e17055","totalTopics":12,"weeksAllocated":12,"strength":"neutral"}
+  ]
+}
+
+weeklyPlan must have exactly 7 entries (Mon–Sun). Use real UPSC syllabus topics. Allocate more time to weak subjects.`;
+
+  try{
+    const r=await fetch('/api/claude',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:3000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const d=await r.json();
+    const txt=d.content[0].text.replace(/```json|```/g,'').trim();
+    planData=JSON.parse(txt);
+    // Stamp ratings into subjectCoverage
+    planData.subjectCoverage.forEach(s=>{s.strength=ratings[s.key]||'neutral';});
+  }catch(e){
+    planData=mockPlan();
+  }
+  document.getElementById(steps[steps.length-1]).className='lstep done';
+  await wait(500);
+  goTo('s-dashboard');
+}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+// ─── DASHBOARD ───
+function buildDash(){
+  if(!planData) planData=mockPlan();
+  const examDate=new Date('2026-05-24');
+  const today=new Date();
+  const days=Math.max(0,Math.ceil((examDate-today)/86400000));
+  document.getElementById('ddays').textContent=days;
+  document.getElementById('stat-days').textContent=days;
+  document.getElementById('today-lbl').textContent=today.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  buildTodayPanel();
+  buildWeekly();
+  buildList();
+  buildSubjBreakdown();
+}
+
+function buildTodayPanel(){
+  const tasks=planData.weeklyPlan[0].tasks;
+  const times=['6:00 AM','7:30 AM','2:00 PM','4:00 PM','6:30 PM'];
+  document.getElementById('today-list').innerHTML=tasks.map((t,i)=>`
+    <div class="tt-item">
+      <div class="tt-time">${times[i]||'—'}</div>
+      <div class="tt-subj">${t.topic}</div>
+      <div class="tt-dur">${t.duration} min</div>
+    </div>`).join('');
+}
+
+function buildWeekly(){
+  const today=new Date();
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  document.getElementById('week-grid').innerHTML=planData.weeklyPlan.map((d,i)=>{
+    const date=new Date(today.getTime()+i*86400000);
+    const isToday=i===0;
+    return `<div class="day-col ${isToday?'today':''}">
+      <div class="dc-head"><div class="dc-day">${days[i]}</div><div class="dc-num">${date.getDate()}</div></div>
+      ${d.tasks.slice(0,3).map(t=>`<div class="dtask ${t.type}">${t.subject.replace('GS Paper ','GS')}<br><span style="font-size:9px;color:var(--text3);">${t.duration}m</span></div>`).join('')}
+      ${d.tasks.length>3?`<div style="font-size:9px;color:var(--text3);text-align:center;margin-top:2px;">+${d.tasks.length-3} more</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function buildList(){
+  const today=new Date();
+  document.getElementById('plan-list').innerHTML=planData.weeklyPlan.map((d,i)=>{
+    const date=new Date(today.getTime()+i*86400000);
+    const lbl=date.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'});
+    const isToday=i===0;
+    const total=d.tasks.reduce((a,t)=>a+parseInt(t.duration||0),0);
+    return `<div>
+      <div class="pdlabel ${isToday?'tday':''}">
+        <span>${lbl} ${isToday?'<span style="font-size:10px;background:var(--accent);color:var(--bg);padding:1px 8px;border-radius:10px;font-weight:700;margin-left:6px;">TODAY</span>':''}</span>
+        <span>${total} min</span>
+      </div>
+      ${d.tasks.map((t,j)=>`
+        <div class="ptask" id="pt${i}${j}">
+          <div class="tcheck" onclick="chkTask(this,'pt${i}${j}')"></div>
+          <div><div class="ti-sub">${t.topic}</div><div class="ti-meta">${t.subject} &nbsp;·&nbsp; ${t.session}</div></div>
+          <div class="tdur">${t.duration} min</div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function buildSubjBreakdown(){
+  document.getElementById('sbdown').innerHTML=planData.subjectCoverage.map(s=>{
+    const tagCls=s.strength==='weak'?'tw':s.strength==='strong'?'ts':'tn';
+    const tagTxt=s.strength==='weak'?'Weak area':s.strength==='strong'?'Strong':'Neutral';
+    return `<div class="sbc">
+      <div class="sbc-head"><div class="sbc-name">${s.name}</div><div class="sbc-tag ${tagCls}">${tagTxt}</div></div>
+      <div class="sbc-bar"><div class="sbc-fill" style="width:0%;background:${s.color};"></div></div>
+      <div class="sbc-meta"><span>0 / ${s.totalTopics} topics done</span><span>${s.weeksAllocated} weeks allocated</span></div>
+    </div>`;
+  }).join('');
+}
+
+function chkTask(el,id){
+  el.classList.toggle('chk');
+  el.textContent=el.classList.contains('chk')?'✓':'';
+  document.getElementById(id).classList.toggle('done-task');
+}
+function switchTab(t,btn){
+  document.querySelectorAll('#v-dashboard .tbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#v-dashboard .tab-c').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+}
+function switchTab2(t,btn){
+  btn.closest('.dash-view').querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  btn.closest('.dash-view').querySelectorAll('.tab-c').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(t).classList.add('active');
+}
+function showView(id, el){
+  document.querySelectorAll('.dash-view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  if(el) el.classList.add('active');
+  else {
+    // find matching sidebar item and highlight it
+    document.querySelectorAll('.sb-item').forEach(i=>{
+      if(i.getAttribute('onclick')&&i.getAttribute('onclick').includes(id)) i.classList.add('active');
+    });
+  }
+  // refresh data for specific views
+  if(id==='v-plan') buildPlanView();
+  if(id==='v-today') buildTodayView();
+  if(id==='v-progress') buildProgressView();
+}
+
+function buildPlanView(){
+  if(!planData) return;
+  // Weekly grid for plan view
+  const today=new Date();
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  document.getElementById('plan-week-grid').innerHTML=planData.weeklyPlan.map((d,i)=>{
+    const date=new Date(today.getTime()+i*86400000);
+    return `<div class="day-col ${i===0?'today':''}">
+      <div class="dc-head"><div class="dc-day">${days[i]}</div><div class="dc-num">${date.getDate()}</div></div>
+      ${d.tasks.slice(0,3).map(t=>`<div class="dtask ${t.type}">${t.subject.replace('GS Paper ','GS')}<br><span style="font-size:9px;color:var(--text3);">${t.duration}m</span></div>`).join('')}
+      ${d.tasks.length>3?`<div style="font-size:9px;color:var(--text3);text-align:center;margin-top:2px;">+${d.tasks.length-3} more</div>`:''}
+    </div>`;
+  }).join('');
+  // Day list for plan view
+  const today2=new Date();
+  document.getElementById('plan-list2').innerHTML=planData.weeklyPlan.map((d,i)=>{
+    const date=new Date(today2.getTime()+i*86400000);
+    const lbl=date.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'});
+    const total=d.tasks.reduce((a,t)=>a+parseInt(t.duration||0),0);
+    return `<div>
+      <div class="pdlabel ${i===0?'tday':''}">
+        <span>${lbl}${i===0?' <span style="font-size:10px;background:var(--accent);color:var(--bg);padding:1px 8px;border-radius:10px;font-weight:700;margin-left:6px;">TODAY</span>':''}</span>
+        <span>${total} min</span>
+      </div>
+      ${d.tasks.map((t,j)=>`
+        <div class="ptask">
+          <div class="tcheck" onclick="this.classList.toggle('chk');this.textContent=this.classList.contains('chk')?'✓':'';this.closest('.ptask').classList.toggle('done-task');"></div>
+          <div><div class="ti-sub">${t.topic}</div><div class="ti-meta">${t.subject} · ${t.session}</div></div>
+          <div class="tdur">${t.duration} min</div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function buildTodayView(){
+  if(!planData) return;
+  const tasks=planData.weeklyPlan[0].tasks;
+  const times=['6:00 AM','7:30 AM','2:00 PM','4:00 PM','6:30 PM'];
+  document.getElementById('today-view-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('today-list2').innerHTML=tasks.map((t,i)=>`
+    <div class="tt-item" style="margin-bottom:8px;">
+      <div class="tt-time">${times[i]||'—'}</div>
+      <div class="tt-subj">${t.topic}<br><span style="font-size:10px;color:var(--text2);">${t.subject}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="tt-dur">${t.duration} min</div>
+        <div class="tcheck" onclick="this.classList.toggle('chk');this.textContent=this.classList.contains('chk')?'✓':'';showToast('Task marked complete! 🎉')"></div>
+      </div>
+    </div>`).join('');
+  document.getElementById('today-progress-bars').innerHTML=`
+    <div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:11px;color:var(--text2);">Tasks completed today</span><span style="font-size:11px;color:var(--text2);">0 / ${tasks.length}</span></div><div style="height:6px;background:var(--border);border-radius:3px;"><div style="height:100%;width:0%;background:var(--green);border-radius:3px;"></div></div></div>
+    <div><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:11px;color:var(--text2);">Study time completed</span><span style="font-size:11px;color:var(--text2);">0 / ${tasks.reduce((a,t)=>a+parseInt(t.duration||0),0)} min</span></div><div style="height:6px;background:var(--border);border-radius:3px;"><div style="height:100%;width:0%;background:var(--accent);border-radius:3px;"></div></div></div>`;
+}
+
+function buildProgressView(){
+  if(!planData||!planData.subjectCoverage) return;
+  document.getElementById('sbdown2').innerHTML=planData.subjectCoverage.map(s=>{
+    const tagCls=s.strength==='weak'?'tw':s.strength==='strong'?'ts':'tn';
+    const tagTxt=s.strength==='weak'?'Weak area':s.strength==='strong'?'Strong':'Neutral';
+    return `<div class="sbc">
+      <div class="sbc-head"><div class="sbc-name">${s.name}</div><div class="sbc-tag ${tagCls}">${tagTxt}</div></div>
+      <div class="sbc-bar"><div class="sbc-fill" style="width:0%;background:${s.color};"></div></div>
+      <div class="sbc-meta"><span>0 / ${s.totalTopics} topics done</span><span>${s.weeksAllocated} weeks allocated</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ─── TOAST ───
+function showToast(msg,col){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.style.display='flex';
+  t.style.borderColor=col||'var(--green)';
+  t.style.color=col||'var(--green)';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.style.display='none',3000);
+}
+
+// ─── MOCK PLAN ───
+function mockPlan(){
+  return{
+    summary:"Prioritising weak GS papers with extra revision cycles. Strong subjects scheduled for periodic reviews only.",
+    weeklyPlan:[
+      {day:"Monday",tasks:[
+        {subject:"GS Paper I",topic:"Ancient India — Indus Valley Civilisation, Vedic Age & religious movements",duration:"90",type:"gs1",session:"Morning"},
+        {subject:"GS Paper II",topic:"Constitutional Framework — Preamble, Fundamental Rights Articles 12–35",duration:"90",type:"gs2",session:"Morning"},
+        {subject:"Current Affairs",topic:"The Hindu reading + PIB summary + note-making",duration:"60",type:"ca",session:"Evening"},
+        {subject:"GS Paper III",topic:"Indian Economy — GDP, GNP, NNP, National Income concepts",duration:"120",type:"gs3",session:"Evening"},
+      ]},
+      {day:"Tuesday",tasks:[
+        {subject:"GS Paper I",topic:"Medieval India — Delhi Sultanate, Bhakti & Sufi movements",duration:"90",type:"gs1",session:"Morning"},
+        {subject:"GS Paper IV",topic:"Ethics Foundations — Virtue ethics, deontology, consequentialism",duration:"90",type:"gs4",session:"Morning"},
+        {subject:"Current Affairs",topic:"Economy & Environment news + editorial analysis",duration:"60",type:"ca",session:"Evening"},
+        {subject:"GS Paper II",topic:"Parliament — Lok Sabha, Rajya Sabha, sessions, powers, parliamentary procedures",duration:"120",type:"gs2",session:"Evening"},
+      ]},
+      {day:"Wednesday",tasks:[
+        {subject:"GS Paper III",topic:"Agriculture — Green Revolution, food security, MSP, APMC reforms",duration:"90",type:"gs3",session:"Morning"},
+        {subject:"GS Paper I",topic:"Modern India — 1857 Revolt, formation of INC, early nationalist movements",duration:"90",type:"gs1",session:"Morning"},
+        {subject:"Current Affairs",topic:"Polity news + SC judgements + governance schemes",duration:"60",type:"ca",session:"Evening"},
+        {subject:"GS Paper IV",topic:"Ethics in governance — Case studies practice: administrative dilemmas",duration:"120",type:"gs4",session:"Evening"},
+      ]},
+      {day:"Thursday",tasks:[
+        {subject:"GS Paper II",topic:"Federalism — Centre-State relations, Schedule VII, Finance Commission",duration:"90",type:"gs2",session:"Morning"},
+        {subject:"GS Paper III",topic:"Environment — Biodiversity hotspots, IUCN categories, key conventions",duration:"90",type:"gs3",session:"Morning"},
+        {subject:"Current Affairs",topic:"International Relations + India's foreign policy + defence news",duration:"60",type:"ca",session:"Evening"},
+        {subject:"GS Paper I",topic:"Indian Geography — Physical features, drainage systems, climate patterns",duration:"120",type:"gs1",session:"Evening"},
+      ]},
+      {day:"Friday",tasks:[
+        {subject:"GS Paper III",topic:"Science & Technology — ISRO missions, DRDO, defence tech, biotech",duration:"90",type:"gs3",session:"Morning"},
+        {subject:"GS Paper II",topic:"Governance — RTI, Lokpal, CAG, e-Governance, citizen charters",duration:"90",type:"gs2",session:"Morning"},
+        {subject:"Current Affairs",topic:"Science & Tech news + weekly current affairs consolidation",duration:"60",type:"ca",session:"Evening"},
+        {subject:"GS Paper I",topic:"World Geography — Continents, ocean currents, climate zones, minerals",duration:"120",type:"gs1",session:"Evening"},
+      ]},
+      {day:"Saturday",tasks:[
+        {subject:"GS Paper I",topic:"Indian Society — Salient features, diversity, role of women, social empowerment",duration:"90",type:"gs1",session:"Morning"},
+        {subject:"GS Paper III",topic:"Internal Security — Terrorism, LWE, cyber threats, border management",duration:"90",type:"gs3",session:"Morning"},
+        {subject:"CSAT",topic:"Reading comprehension + Data Interpretation + logical reasoning sets",duration:"90",type:"csat",session:"Evening"},
+        {subject:"All Papers",topic:"Weekly revision — quick recap of all 5 days of topics covered",duration:"90",type:"gs2",session:"Evening"},
+      ]},
+      {day:"Sunday",tasks:[
+        {subject:"Current Affairs",topic:"Weekly CA consolidation — prepare monthly digest & topic-wise notes",duration:"90",type:"ca",session:"Morning"},
+        {subject:"Essay",topic:"Answer writing practice — 2 UPSC Mains essay outlines with structure",duration:"90",type:"gs4",session:"Evening"},
+      ]},
+    ],
+    subjectCoverage:[
+      {key:"gs1",name:"GS Paper I",color:"#ff9f43",totalTopics:24,weeksAllocated:8,strength:"neutral"},
+      {key:"gs2",name:"GS Paper II",color:"#4a9eff",totalTopics:20,weeksAllocated:6,strength:"neutral"},
+      {key:"gs3",name:"GS Paper III",color:"#a29bfe",totalTopics:18,weeksAllocated:7,strength:"neutral"},
+      {key:"gs4",name:"GS Paper IV",color:"#fd79a8",totalTopics:10,weeksAllocated:4,strength:"neutral"},
+      {key:"csat",name:"CSAT",color:"#fdcb6e",totalTopics:8,weeksAllocated:2,strength:"strong"},
+      {key:"ca",name:"Current Affairs",color:"#e17055",totalTopics:12,weeksAllocated:12,strength:"neutral"},
+    ]
+  };
+}
+</script>
+</body>
+</html>
