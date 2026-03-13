@@ -317,17 +317,17 @@ select option{background:var(--surface2);}
       <div class="auth-card">
         <div class="auth-title">Create free account</div>
         <p class="auth-sub">Login takes 10 seconds. Plan takes 2 minutes.</p>
-        <button class="btn btn-google" onclick="doLogin()">
+        <button class="btn btn-google" onclick="doGoogleLogin()">
           <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
           Continue with Google
         </button>
-        <button class="btn btn-fb" onclick="doLogin()">
+        <button class="btn btn-fb" onclick="doFacebookLogin()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
           Continue with Facebook
         </button>
         <div class="divider">or</div>
-        <div class="field"><label>Email</label><input type="email" placeholder="yourname@gmail.com"></div>
-        <button class="btn btn-primary" onclick="doLogin()">Continue with Email →</button>
+        <div class="field"><label>Email</label><input type="email" id="email-in" placeholder="yourname@gmail.com"></div>
+        <button class="btn btn-primary" onclick="doEmailLogin()">Continue with Email →</button>
         <div class="free-badge mt16">
           <div class="fdot"></div>
           <p><strong>Free until September 2026</strong><br><span>Then ₹999 one-time. No subscription ever.</span></p>
@@ -824,7 +824,140 @@ select option{background:var(--surface2);}
 <!-- TOAST -->
 <div class="toast" id="toast" style="display:none;">✓ <span id="toast-msg"></span></div>
 
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
+// ─── SUPABASE INIT ───
+// These are PUBLIC keys — safe to have in frontend
+const SUPABASE_URL = 'https://ruolwdkkxzrldplhobog.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1b2x3ZGtreHpybGRwbGhvYm9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTM5MDMsImV4cCI6MjA4ODg4OTkwM30.HCvIgX3dge6AC4unpMddKl3s0rbHOiToevHWNJy1kLs';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ─── AUTH STATE ───
+let currentUser = null;
+let authToken = null;
+
+// Check if user is already logged in on page load
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    authToken = session.access_token;
+    await loadUserData();
+    goTo('s-dashboard');
+  }
+  // Listen for auth changes
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      currentUser = session.user;
+      authToken = session.access_token;
+      showToast('✅ Signed in as ' + (session.user.user_metadata?.full_name || session.user.email));
+    }
+    if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      authToken = null;
+      goTo('s-auth');
+    }
+  });
+}
+initAuth();
+
+// ─── GOOGLE LOGIN ───
+async function doGoogleLogin() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin
+    }
+  });
+  if (error) showToast('Login error: ' + error.message);
+}
+
+async function doFacebookLogin() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'facebook',
+    options: { redirectTo: window.location.origin }
+  });
+  if (error) showToast('Login error: ' + error.message);
+}
+
+async function doEmailLogin() {
+  const email = document.getElementById('email-in').value.trim();
+  if (!email) { showToast('Enter your email first'); return; }
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+  if (error) showToast('Error: ' + error.message);
+  else showToast('✅ Check your email for a login link!');
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  showToast('Signed out');
+}
+
+// ─── SAVE TO DATABASE ───
+async function saveProfile(data) {
+  if (!authToken) return;
+  await fetch('/api/db?action=save-profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+    body: JSON.stringify(data)
+  });
+}
+
+async function saveRatings() {
+  if (!authToken) return;
+  await fetch('/api/db?action=save-ratings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+    body: JSON.stringify({ ratings })
+  });
+}
+
+async function savePlan(plan_data) {
+  if (!authToken) return null;
+  const res = await fetch('/api/db?action=save-plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+    body: JSON.stringify({ plan_data })
+  });
+  const data = await res.json();
+  return data.plan_id;
+}
+
+async function completeTask(day_index, task_index, topic, subject) {
+  if (!authToken || !activePlanId) return;
+  await fetch('/api/db?action=complete-task', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+    body: JSON.stringify({ plan_id: activePlanId, day_index, task_index, topic, subject })
+  });
+}
+
+async function loadUserData() {
+  if (!authToken) return;
+  try {
+    const res = await fetch('/api/db?action=load', {
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
+    const data = await res.json();
+    if (data.plan?.plan_data) {
+      planData = data.plan.plan_data;
+      activePlanId = data.plan.id;
+    }
+    if (data.profile) {
+      const p = data.profile;
+      document.querySelector('.dash-greeting span').textContent =
+        p.full_name?.split(' ')[0] || currentUser?.email?.split('@')[0] || 'Aspirant';
+    }
+    if (data.streak) {
+      document.querySelector('.sc:last-child .sc-val').textContent = 'Day ' + (data.streak.current_streak || 1);
+    }
+  } catch(e) { console.log('Load error:', e); }
+}
+
+let activePlanId = null;
+
 // ─── SUBJECTS DATA ───
 const SUBJS = [
   {key:'gs1',name:'GS Paper I',sub:'History, Geography, Society',color:'#ff9f43'},
@@ -847,7 +980,6 @@ function goTo(id) {
   if(id==='s-subjects') buildSubjList();
   if(id==='s-dashboard') buildDash();
 }
-function doLogin(){ goTo('s-exam'); }
 
 // ─── RADIO SELECT ───
 function selR(el, grp) {
@@ -955,10 +1087,12 @@ weeklyPlan must have exactly 7 entries (Mon–Sun). Use real UPSC syllabus topic
     const txt=d.content[0].text.replace(/```json|```/g,'').trim();
     planData=JSON.parse(txt);
     // Stamp ratings into subjectCoverage
-    planData.subjectCoverage.forEach(s=>{s.strength=ratings[s.key]||'neutral';});
-  }catch(e){
+    }catch(e){
     planData=mockPlan();
   }
+  planData.subjectCoverage.forEach(s=>{s.strength=ratings[s.key]||'neutral';});
+  // Save plan to database
+  activePlanId = await savePlan(planData);
   document.getElementById(steps[steps.length-1]).className='lstep done';
   await wait(500);
   goTo('s-dashboard');
