@@ -829,6 +829,109 @@ select option{background:var(--surface2);}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+// ══════════════════════════════════════════════════
+// DATA — declared first so nothing can reference before init
+// ══════════════════════════════════════════════════
+
+// ─── EXAM-SPECIFIC SUBJECTS ───
+const EXAM_SUBJECTS = {
+  'UPSC CSE': [
+    {key:'gs1',name:'GS Paper I',sub:'History, Geography, Society',color:'#ff9f43'},
+    {key:'gs2',name:'GS Paper II',sub:'Polity, Governance, IR',color:'#4a9eff'},
+    {key:'gs3',name:'GS Paper III',sub:'Economy, Environment, S&T',color:'#a29bfe'},
+    {key:'gs4',name:'GS Paper IV',sub:'Ethics, Integrity, Aptitude',color:'#fd79a8'},
+    {key:'csat',name:'CSAT',sub:'Paper II — Qualifying',color:'#fdcb6e'},
+    {key:'ca',name:'Current Affairs',sub:'Daily The Hindu + PIB',color:'#e17055'},
+    {key:'essay',name:'Essay Paper',sub:'Mains — 250 marks',color:'#81ecec'},
+    {key:'opt',name:'Optional Subject',sub:'As selected earlier',color:'#55efc4'},
+  ],
+  'UPSC CAPF': [
+    {key:'gs1',name:'General Ability & Intelligence',sub:'Reasoning, Mental Ability',color:'#ff9f43'},
+    {key:'gs2',name:'General Studies',sub:'History, Geography, Polity',color:'#4a9eff'},
+    {key:'gs3',name:'Essay & Comprehension',sub:'English + Hindi writing',color:'#a29bfe'},
+    {key:'ca',name:'Current Affairs',sub:'National & International',color:'#e17055'},
+  ],
+  'SSC CGL': [
+    {key:'gs1',name:'Quantitative Aptitude',sub:'Maths, Data Interpretation',color:'#ff9f43'},
+    {key:'gs2',name:'English Language',sub:'Comprehension, Grammar, Vocabulary',color:'#4a9eff'},
+    {key:'gs3',name:'General Intelligence',sub:'Reasoning, Logical Ability',color:'#a29bfe'},
+    {key:'gs4',name:'General Awareness',sub:'History, Polity, Science, Economy',color:'#fd79a8'},
+    {key:'ca',name:'Current Affairs',sub:'National & International Events',color:'#e17055'},
+  ],
+  'MPSC': [
+    {key:'gs1',name:'General Studies I',sub:'History, Geography, Culture',color:'#ff9f43'},
+    {key:'gs2',name:'General Studies II',sub:'Polity, Economy, Science',color:'#4a9eff'},
+    {key:'gs3',name:'Marathi Language',sub:'Grammar, Comprehension, Essay',color:'#a29bfe'},
+    {key:'csat',name:'CSAT',sub:'Aptitude & Reasoning',color:'#fdcb6e'},
+    {key:'ca',name:'Current Affairs',sub:'Maharashtra + National focus',color:'#e17055'},
+  ],
+  'UPPSC': [
+    {key:'gs1',name:'General Studies I',sub:'History, Geography, Culture (UP focus)',color:'#ff9f43'},
+    {key:'gs2',name:'General Studies II',sub:'Polity, Governance, Economy',color:'#4a9eff'},
+    {key:'gs3',name:'General Hindi',sub:'Grammar, Essay, Comprehension',color:'#a29bfe'},
+    {key:'gs4',name:'General Studies III',sub:'Science, Environment, Tech',color:'#fd79a8'},
+    {key:'ca',name:'Current Affairs',sub:'UP + National Events',color:'#e17055'},
+  ],
+  'BPSC': [
+    {key:'gs1',name:'General Studies I',sub:'History, Geography (Bihar focus)',color:'#ff9f43'},
+    {key:'gs2',name:'General Studies II',sub:'Polity, Economy, Science',color:'#4a9eff'},
+    {key:'gs3',name:'General Hindi',sub:'Grammar, Essay, Comprehension',color:'#a29bfe'},
+    {key:'ca',name:'Current Affairs',sub:'Bihar + National Events',color:'#e17055'},
+  ],
+};
+
+// ─── EXAM CONFIGS (dates + syllabus descriptions) ───
+const EXAM_CONFIGS = {
+  'UPSC CSE': {
+    subjects: ['GS Paper I (History, Geography, Society)', 'GS Paper II (Polity, Governance, IR)', 'GS Paper III (Economy, Environment, S&T)', 'GS Paper IV (Ethics)', 'CSAT', 'Current Affairs', 'Essay', 'Optional Subject'],
+    examDate: '2026-05-24',
+    syllabus: 'UPSC Civil Services Examination syllabus with Prelims (GS + CSAT) and Mains (GS I-IV + Essay + Optional)'
+  },
+  'UPSC CAPF': {
+    subjects: ['General Ability & Intelligence', 'General Studies (History, Geography, Polity)', 'Essay & Comprehension', 'Physical Sciences', 'Current Affairs'],
+    examDate: '2026-08-01',
+    syllabus: 'UPSC CAPF (Central Armed Police Forces) AC exam syllabus'
+  },
+  'SSC CGL': {
+    subjects: ['Quantitative Aptitude', 'English Language', 'General Intelligence & Reasoning', 'General Awareness', 'Current Affairs'],
+    examDate: '2026-07-01',
+    syllabus: 'SSC CGL (Combined Graduate Level) Tier I and Tier II syllabus'
+  },
+  'MPSC': {
+    subjects: ['Marathi Language', 'General Studies I (History, Geography)', 'General Studies II (Polity, Economy)', 'General Studies III (Science, Environment)', 'CSAT', 'Current Affairs (Maharashtra focus)'],
+    examDate: '2026-06-01',
+    syllabus: 'MPSC (Maharashtra Public Service Commission) State Services exam syllabus'
+  },
+  'UPPSC': {
+    subjects: ['General Studies I (History, Geography, Culture)', 'General Studies II (Polity, Governance)', 'General Studies III (Economy, Science)', 'General Hindi', 'Current Affairs (UP focus)', 'Essay'],
+    examDate: '2026-07-01',
+    syllabus: 'UPPSC (Uttar Pradesh PSC) PCS exam syllabus'
+  },
+  'BPSC': {
+    subjects: ['General Studies I (History, Geography)', 'General Studies II (Polity, Economy, Science)', 'General Hindi', 'Current Affairs (Bihar focus)', 'Essay'],
+    examDate: '2026-08-01',
+    syllabus: 'BPSC (Bihar Public Service Commission) Integrated exam syllabus'
+  }
+};
+
+// ─── SELECTED EXAM STATE ───
+let selectedExam = { type: 'UPSC CSE', year: '2026', stage: '', mode: '' };
+
+// ─── SUBJECT RATINGS ───
+const SUBJS = EXAM_SUBJECTS['UPSC CSE']; // legacy fallback
+const ratings = {};
+function getCurrentSubjs() { return EXAM_SUBJECTS[selectedExam.type] || EXAM_SUBJECTS['UPSC CSE']; }
+function initRatings() { getCurrentSubjs().forEach(s => { if(!ratings[s.key]) ratings[s.key]='neutral'; }); }
+initRatings();
+
+// ─── PLAN STATE ───
+let planData = null;
+let activePlanId = null;
+
+// ══════════════════════════════════════════════════
+// SUPABASE INIT
+// ══════════════════════════════════════════════════
+
 // ─── SUPABASE INIT ───
 // These are PUBLIC keys — safe to have in frontend
 const SUPABASE_URL = 'https://ruolwdkkxzrldplhobog.supabase.co';
@@ -1030,70 +1133,6 @@ async function completeTask(day_index, task_index, topic, subject) {
   });
 }
 
-let activePlanId = null;
-
-// ─── EXAM-SPECIFIC SUBJECTS ───
-const EXAM_SUBJECTS = {
-  'UPSC CSE': [
-    {key:'gs1',name:'GS Paper I',sub:'History, Geography, Society',color:'#ff9f43'},
-    {key:'gs2',name:'GS Paper II',sub:'Polity, Governance, IR',color:'#4a9eff'},
-    {key:'gs3',name:'GS Paper III',sub:'Economy, Environment, S&T',color:'#a29bfe'},
-    {key:'gs4',name:'GS Paper IV',sub:'Ethics, Integrity, Aptitude',color:'#fd79a8'},
-    {key:'csat',name:'CSAT',sub:'Paper II — Qualifying',color:'#fdcb6e'},
-    {key:'ca',name:'Current Affairs',sub:'Daily The Hindu + PIB',color:'#e17055'},
-    {key:'essay',name:'Essay Paper',sub:'Mains — 250 marks',color:'#81ecec'},
-    {key:'opt',name:'Optional Subject',sub:'As selected earlier',color:'#55efc4'},
-  ],
-  'UPSC CAPF': [
-    {key:'gs1',name:'General Ability & Intelligence',sub:'Reasoning, Mental Ability',color:'#ff9f43'},
-    {key:'gs2',name:'General Studies',sub:'History, Geography, Polity',color:'#4a9eff'},
-    {key:'gs3',name:'Essay & Comprehension',sub:'English + Hindi writing',color:'#a29bfe'},
-    {key:'ca',name:'Current Affairs',sub:'National & International',color:'#e17055'},
-  ],
-  'SSC CGL': [
-    {key:'gs1',name:'Quantitative Aptitude',sub:'Maths, Data Interpretation',color:'#ff9f43'},
-    {key:'gs2',name:'English Language',sub:'Comprehension, Grammar, Vocabulary',color:'#4a9eff'},
-    {key:'gs3',name:'General Intelligence',sub:'Reasoning, Logical Ability',color:'#a29bfe'},
-    {key:'gs4',name:'General Awareness',sub:'History, Polity, Science, Economy',color:'#fd79a8'},
-    {key:'ca',name:'Current Affairs',sub:'National & International Events',color:'#e17055'},
-  ],
-  'MPSC': [
-    {key:'gs1',name:'General Studies I',sub:'History, Geography, Culture',color:'#ff9f43'},
-    {key:'gs2',name:'General Studies II',sub:'Polity, Economy, Science',color:'#4a9eff'},
-    {key:'gs3',name:'Marathi Language',sub:'Grammar, Comprehension, Essay',color:'#a29bfe'},
-    {key:'csat',name:'CSAT',sub:'Aptitude & Reasoning',color:'#fdcb6e'},
-    {key:'ca',name:'Current Affairs',sub:'Maharashtra + National focus',color:'#e17055'},
-  ],
-  'UPPSC': [
-    {key:'gs1',name:'General Studies I',sub:'History, Geography, Culture (UP focus)',color:'#ff9f43'},
-    {key:'gs2',name:'General Studies II',sub:'Polity, Governance, Economy',color:'#4a9eff'},
-    {key:'gs3',name:'General Hindi',sub:'Grammar, Essay, Comprehension',color:'#a29bfe'},
-    {key:'gs4',name:'General Studies III',sub:'Science, Environment, Tech',color:'#fd79a8'},
-    {key:'ca',name:'Current Affairs',sub:'UP + National Events',color:'#e17055'},
-  ],
-  'BPSC': [
-    {key:'gs1',name:'General Studies I',sub:'History, Geography (Bihar focus)',color:'#ff9f43'},
-    {key:'gs2',name:'General Studies II',sub:'Polity, Economy, Science',color:'#4a9eff'},
-    {key:'gs3',name:'General Hindi',sub:'Grammar, Essay, Comprehension',color:'#a29bfe'},
-    {key:'ca',name:'Current Affairs',sub:'Bihar + National Events',color:'#e17055'},
-  ],
-};
-
-// Get current subjects based on selected exam
-function getCurrentSubjs() {
-  return EXAM_SUBJECTS[selectedExam.type] || EXAM_SUBJECTS['UPSC CSE'];
-}
-
-// ─── SUBJECTS DATA (legacy fallback) ───
-const SUBJS = EXAM_SUBJECTS['UPSC CSE'];
-const ratings = {};
-
-// ─── SELECTED EXAM STATE — must be declared before initRatings ───
-let selectedExam = { type: 'UPSC CSE', year: '2026', stage: '', mode: '' };
-
-function initRatings() { getCurrentSubjs().forEach(s => { if(!ratings[s.key]) ratings[s.key]='neutral'; }); }
-initRatings();
-
 // ─── NAVIGATION ───
 function goTo(id) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1187,42 +1226,8 @@ function addBreak(){
   document.getElementById('bname').value='';
 }
 
-// ─── EXAM CONFIGS ───
-const EXAM_CONFIGS = {
-  'UPSC CSE': {
-    subjects: ['GS Paper I (History, Geography, Society)', 'GS Paper II (Polity, Governance, IR)', 'GS Paper III (Economy, Environment, S&T)', 'GS Paper IV (Ethics)', 'CSAT', 'Current Affairs', 'Essay', 'Optional Subject'],
-    examDate: '2026-05-24',
-    syllabus: 'UPSC Civil Services Examination syllabus with Prelims (GS + CSAT) and Mains (GS I-IV + Essay + Optional)'
-  },
-  'UPSC CAPF': {
-    subjects: ['General Ability & Intelligence', 'General Studies (History, Geography, Polity)', 'Essay & Comprehension', 'Physical Sciences', 'Current Affairs'],
-    examDate: '2026-08-01',
-    syllabus: 'UPSC CAPF (Central Armed Police Forces) AC exam syllabus'
-  },
-  'SSC CGL': {
-    subjects: ['Quantitative Aptitude', 'English Language', 'General Intelligence & Reasoning', 'General Awareness', 'Current Affairs'],
-    examDate: '2026-07-01',
-    syllabus: 'SSC CGL (Combined Graduate Level) Tier I and Tier II syllabus'
-  },
-  'MPSC': {
-    subjects: ['Marathi Language', 'General Studies I (History, Geography)', 'General Studies II (Polity, Economy)', 'General Studies III (Science, Environment)', 'CSAT', 'Current Affairs (Maharashtra focus)'],
-    examDate: '2026-06-01',
-    syllabus: 'MPSC (Maharashtra Public Service Commission) State Services exam syllabus'
-  },
-  'UPPSC': {
-    subjects: ['General Studies I (History, Geography, Culture)', 'General Studies II (Polity, Governance)', 'General Studies III (Economy, Science)', 'General Hindi', 'Current Affairs (UP focus)', 'Essay'],
-    examDate: '2026-07-01',
-    syllabus: 'UPPSC (Uttar Pradesh PSC) PCS exam syllabus'
-  },
-  'BPSC': {
-    subjects: ['General Studies I (History, Geography)', 'General Studies II (Polity, Economy, Science)', 'General Hindi', 'Current Affairs (Bihar focus)', 'Essay'],
-    examDate: '2026-08-01',
-    syllabus: 'BPSC (Bihar Public Service Commission) Integrated exam syllabus'
-  }
-};
 
 // ─── GENERATE PLAN ───
-let planData=null;
 async function startGenerate(){
   goTo('s-loading');
   const steps=['ls0','ls1','ls2','ls3','ls4'];
