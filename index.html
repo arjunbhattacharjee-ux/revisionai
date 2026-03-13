@@ -424,7 +424,7 @@ select option{background:var(--surface2);}
         </select>
       </div>
 
-      <button class="btn btn-primary mt20" onclick="goTo('s-subjects')">Continue to Subject Assessment →</button>
+      <button class="btn btn-primary mt20" onclick="saveExamProfile()">Continue to Subject Assessment →</button>
     </div>
   </div>
 </div>
@@ -461,7 +461,7 @@ select option{background:var(--surface2);}
 
       <div style="display:flex;gap:10px;margin-top:22px;">
         <button class="btn btn-ghost" onclick="goTo('s-exam')">← Back</button>
-        <button class="btn btn-primary" onclick="goTo('s-schedule')" style="flex:1;">Continue to Study Schedule →</button>
+        <button class="btn btn-primary" onclick="saveRatings().then(()=>goTo('s-schedule'))" style="flex:1;">Continue to Study Schedule →</button>
       </div>
     </div>
   </div>
@@ -578,6 +578,8 @@ select option{background:var(--surface2);}
       <div class="sb-section">Account</div>
       <div class="sb-item" onclick="showView('v-reschedule',this)"><span class="sb-icon">⚙️</span>Reschedule Plan</div>
       <div class="sb-item" onclick="showView('v-reminders',this)"><span class="sb-icon">🔔</span>Reminders</div>
+      <div class="sb-item" onclick="confirmRestartPlan()"><span class="sb-icon">🔄</span>Redo My Plan</div>
+      <div class="sb-item" onclick="confirmLogout()" style="margin-top:auto;color:var(--red);"><span class="sb-icon">🚪</span>Sign Out</div>
       <div class="sb-item" onclick="goTo('s-pricing')"><span class="sb-icon">💎</span>Pricing</div>
     </div>
     <div class="dash-main">
@@ -837,29 +839,92 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ─── AUTH STATE ───
 let currentUser = null;
 let authToken = null;
+let routingDone = false;
+let routingDone = false; // lock prevents double-routing
 
-// Check if user is already logged in on page load
 async function initAuth() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    currentUser = session.user;
-    authToken = session.access_token;
-    await loadUserData();
-    goTo('s-dashboard');
+  // Clean the # hash from URL after Google OAuth redirect
+  if (window.location.hash && window.location.hash.includes('access_token')) {
+    history.replaceState(null, '', window.location.pathname);
   }
-  // Listen for auth changes
+
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) {
-      currentUser = session.user;
-      authToken = session.access_token;
-      showToast('✅ Signed in as ' + (session.user.user_metadata?.full_name || session.user.email));
-    }
     if (event === 'SIGNED_OUT') {
       currentUser = null;
       authToken = null;
+      planData = null;
+      activePlanId = null;
+      routingDone = false;
       goTo('s-auth');
+      return;
+    }
+    if (session && !routingDone) {
+      routingDone = true;
+      currentUser = session.user;
+      authToken = session.access_token;
+      // Clean hash after OAuth
+      if (window.location.hash) {
+        history.replaceState(null, '', window.location.pathname);
+      }
+      await routeUser();
     }
   });
+}
+
+// ─── SMART ROUTING ───
+async function routeUser() {
+  showToast('Loading your profile...');
+  try {
+    const res = await fetch('/api/db?action=load', {
+      headers: { 'Authorization': 'Bearer ' + authToken }
+    });
+
+    // Server error (e.g. missing package, env var issue)
+    if (!res.ok) {
+      console.warn('DB load failed, HTTP:', res.status, await res.text());
+      // Fallback: send to onboarding safely
+      showToast('Welcome! Setting up your profile 🎯');
+      goTo('s-exam');
+      return;
+    }
+
+    const data = await res.json();
+
+    // Has a saved active plan → go to dashboard
+    if (data.plan?.plan_data) {
+      planData = data.plan.plan_data;
+      activePlanId = data.plan.id;
+      if (data.ratings?.length) {
+        data.ratings.forEach(r => { ratings[r.subject_key] = r.rating; });
+      }
+      const name = data.profile?.full_name
+        || currentUser?.user_metadata?.full_name
+        || currentUser?.email?.split('@')[0]
+        || 'Aspirant';
+      const firstName = name.split(' ')[0];
+      document.querySelectorAll('.dash-greeting span').forEach(el => el.textContent = firstName);
+      showToast('👋 Welcome back, ' + firstName + '!');
+      goTo('s-dashboard');
+      return;
+    }
+
+    // Has profile but no plan → resume onboarding at subjects
+    if (data.profile?.exam_type) {
+      showToast('Welcome back! Let\'s finish your setup.');
+      goTo('s-subjects');
+      return;
+    }
+
+    // Brand new user → full onboarding
+    const firstName = currentUser?.user_metadata?.full_name?.split(' ')[0] || 'there';
+    showToast('Welcome, ' + firstName + '! Let\'s build your plan 🎯');
+    goTo('s-exam');
+
+  } catch(e) {
+    console.error('routeUser error:', e);
+    showToast('Welcome! Let\'s get started 🎯');
+    goTo('s-exam'); // always safe to fall back to onboarding
+  }
 }
 initAuth();
 
@@ -892,7 +957,29 @@ async function doEmailLogin() {
 
 async function doLogout() {
   await sb.auth.signOut();
-  showToast('Signed out');
+  showToast('Signed out successfully');
+}
+
+function confirmLogout() {
+  if (confirm('Sign out of PrepPath?')) doLogout();
+}
+
+async function confirmRestartPlan() {
+  if (!confirm('This will delete your current plan and take you back to the beginning. Are you sure?')) return;
+  // Delete plan from Supabase
+  if (authToken) {
+    await fetch('/api/db?action=delete-plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }
+    }).catch(() => {});
+  }
+  // Reset local state
+  planData = null;
+  activePlanId = null;
+  Object.keys(ratings).forEach(k => ratings[k] = 'neutral');
+  routingDone = false;
+  showToast('Plan reset! Starting fresh 🎯');
+  goTo('s-exam');
 }
 
 // ─── SAVE TO DATABASE ───
@@ -979,6 +1066,31 @@ function goTo(id) {
   window.scrollTo(0,0);
   if(id==='s-subjects') buildSubjList();
   if(id==='s-dashboard') buildDash();
+}
+
+// Save exam profile then proceed
+async function saveExamProfile() {
+  const examSel = document.querySelector('[name="exam"].sel input, .rbtn.sel input[name="exam"]');
+  // Get selected exam from radio buttons
+  const examBtn = document.querySelector('#s-exam .rbtn.sel strong');
+  const examType = examBtn ? examBtn.textContent : 'UPSC CSE';
+  const attemptYear = document.getElementById('yr').value || '2026';
+  const attemptNum = document.getElementById('atnum').value || '1';
+  const retryBtn = document.querySelector('#retry-sec .rbtn.sel strong');
+  const stageBtn = document.querySelector('[name="stage"]')?.closest('.rbtn.sel strong');
+  const modeBtn = document.querySelector('[name="mode"]')?.closest('.rbtn.sel strong');
+
+  await saveProfile({
+    exam_type: examType,
+    attempt_year: attemptYear,
+    attempt_number: attemptNum,
+    retry_reason: retryBtn?.textContent || null,
+    prep_stage: stageBtn?.textContent || null,
+    study_mode: modeBtn?.textContent || null,
+    optional_subject: document.querySelector('#s-exam select:last-of-type')?.value || null
+  });
+
+  goTo('s-subjects');
 }
 
 // ─── RADIO SELECT ───
