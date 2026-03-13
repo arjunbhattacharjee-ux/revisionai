@@ -1087,6 +1087,10 @@ function getCurrentSubjs() {
 // ─── SUBJECTS DATA (legacy fallback) ───
 const SUBJS = EXAM_SUBJECTS['UPSC CSE'];
 const ratings = {};
+
+// ─── SELECTED EXAM STATE — must be declared before initRatings ───
+let selectedExam = { type: 'UPSC CSE', year: '2026', stage: '', mode: '' };
+
 function initRatings() { getCurrentSubjs().forEach(s => { if(!ratings[s.key]) ratings[s.key]='neutral'; }); }
 initRatings();
 
@@ -1099,10 +1103,7 @@ function goTo(id) {
   if(id==='s-dashboard') buildDash();
 }
 
-// ─── SELECTED EXAM STATE ───
-let selectedExam = { type: 'UPSC CSE', year: '2026', stage: '', mode: '' };
-
-// Save exam profile then proceed
+// ─── SAVE EXAM PROFILE ───
 async function saveExamProfile() {
   const examBtn = document.querySelector('#s-exam .rbtn.sel strong');
   const examType = examBtn ? examBtn.textContent.trim() : 'UPSC CSE';
