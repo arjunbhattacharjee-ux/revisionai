@@ -166,6 +166,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ── DELETE PLAN (restart onboarding) ──
+    if (req.method === 'POST' && action === 'delete-plan') {
+      await query('plans', 'PATCH', { is_active: false }, `?user_id=eq.${uid}`).catch(() => {});
+      await query('profiles', 'PATCH', { exam_type: null, updated_at: new Date().toISOString() }, `?id=eq.${uid}`).catch(() => {});
+      return res.status(200).json({ success: true });
+    }
+
     return res.status(400).json({ error: 'Unknown action: ' + action });
 
   } catch (err) {
