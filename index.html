@@ -839,7 +839,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ─── AUTH STATE ───
 let currentUser = null;
 let authToken = null;
-let routingDone = false;
 let routingDone = false; // lock prevents double-routing
 
 async function initAuth() {
