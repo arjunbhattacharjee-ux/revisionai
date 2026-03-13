@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PrepPath — UPSC Revision Planner</title>
+<title>PrepPath — Exam Revision Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Playfair+Display:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
 <style>
@@ -561,7 +561,7 @@ select option{background:var(--surface2);}
     <div class="logo">Prep<span>Path</span></div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="btn btn-ghost" style="padding:7px 14px;font-size:11px;" onclick="goTo('s-pricing')">💎 Pricing</button>
-      <div class="user-pill"><div class="uavatar">A</div>Aspirant &nbsp;|&nbsp; UPSC CSE 2026</div>
+      <div class="user-pill"><div class="uavatar" id="user-avatar">A</div><span id="user-pill-label">Aspirant</span></div>
     </div>
   </div>
   <div class="dash-layout">
@@ -594,7 +594,7 @@ select option{background:var(--surface2);}
           <button class="btn btn-ghost" style="font-size:11px;padding:8px 14px;" onclick="showView('v-reschedule',null)">Missed a day? Reschedule</button>
         </div>
         <div class="stats-strip">
-          <div class="sc hl"><div class="sc-lbl">Days to Prelims</div><div class="sc-val" id="stat-days">—</div><div class="sc-sub">Stay consistent</div></div>
+          <div class="sc hl"><div class="sc-lbl">Days to Exam</div><div class="sc-val" id="stat-days">—</div><div class="sc-sub">Stay consistent</div></div>
           <div class="sc"><div class="sc-lbl">Topics This Week</div><div class="sc-val">0 / 14</div><div class="sc-sub">GS + Current Affairs</div></div>
           <div class="sc"><div class="sc-lbl">Revision Cycles</div><div class="sc-val">0</div><div class="sc-sub">Target: 3 per topic</div></div>
           <div class="sc"><div class="sc-lbl">Study Streak</div><div class="sc-val">Day 1</div><div class="sc-sub">🔥 Build momentum</div></div>
@@ -679,13 +679,12 @@ select option{background:var(--surface2);}
         </div>
       </div>
 
-      <!-- ▸ VIEW: CURRENT AFFAIRS (coming soon) -->
       <div class="dash-view" id="v-ca">
-        <div class="view-header"><div class="view-title">📰 Current Affairs Connector</div><div class="view-sub">Auto-map daily news to your UPSC syllabus</div></div>
+        <div class="view-header"><div class="view-title">📰 Current Affairs Connector</div><div class="view-sub">Auto-map daily news to your exam syllabus</div></div>
         <div style="background:var(--surface);border:1px solid rgba(232,197,71,0.2);border-radius:12px;padding:32px;text-align:center;">
           <div style="display:inline-block;background:var(--accent-dim);border:1px solid rgba(232,197,71,0.3);border-radius:20px;padding:4px 14px;font-size:10px;color:var(--accent);font-weight:700;letter-spacing:0.1em;margin-bottom:16px;">COMING SOON</div>
-          <div style="font-family:var(--display);font-size:1.3rem;font-weight:700;margin-bottom:10px;">The Hindu → Syllabus in one click</div>
-          <p style="font-size:12px;color:var(--text2);max-width:400px;margin:0 auto 20px;">Paste any news article. AI maps it to your UPSC syllabus topic, generates 3 potential exam questions, and adds it to your personal current affairs bank.</p>
+          <div style="font-family:var(--display);font-size:1.3rem;font-weight:700;margin-bottom:10px;">News → Syllabus in one click</div>
+          <p style="font-size:12px;color:var(--text2);max-width:400px;margin:0 auto 20px;">Paste any news article. AI maps it to your exam syllabus, generates 3 potential exam questions, and adds it to your personal current affairs bank.</p>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:480px;margin:0 auto;">
             <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;"><div style="font-size:1.2rem;margin-bottom:6px;">📥</div><div style="font-size:11px;color:var(--text2);">Paste article or URL</div></div>
             <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;"><div style="font-size:1.2rem;margin-bottom:6px;">🏷️</div><div style="font-size:11px;color:var(--text2);">Auto-tagged to syllabus</div></div>
@@ -893,6 +892,14 @@ async function routeUser() {
     if (data.plan?.plan_data) {
       planData = data.plan.plan_data;
       activePlanId = data.plan.id;
+      // Restore exam info from profile
+      if (data.profile?.exam_type) {
+        selectedExam.type = data.profile.exam_type;
+        selectedExam.year = data.profile.attempt_year || '2026';
+        selectedExam.stage = data.profile.prep_stage || '';
+        selectedExam.mode = data.profile.study_mode || '';
+        initRatings();
+      }
       if (data.ratings?.length) {
         data.ratings.forEach(r => { ratings[r.subject_key] = r.rating; });
       }
@@ -902,6 +909,7 @@ async function routeUser() {
         || 'Aspirant';
       const firstName = name.split(' ')[0];
       document.querySelectorAll('.dash-greeting span').forEach(el => el.textContent = firstName);
+      updateUserPill(firstName, selectedExam.type, selectedExam.year);
       showToast('👋 Welcome back, ' + firstName + '!');
       goTo('s-dashboard');
       return;
@@ -909,6 +917,8 @@ async function routeUser() {
 
     // Has profile but no plan → resume onboarding at subjects
     if (data.profile?.exam_type) {
+      selectedExam.type = data.profile.exam_type;
+      selectedExam.year = data.profile.attempt_year || '2026';
       showToast('Welcome back! Let\'s finish your setup.');
       goTo('s-subjects');
       return;
@@ -1020,64 +1030,98 @@ async function completeTask(day_index, task_index, topic, subject) {
   });
 }
 
-async function loadUserData() {
-  if (!authToken) return;
-  try {
-    const res = await fetch('/api/db?action=load', {
-      headers: { 'Authorization': 'Bearer ' + authToken }
-    });
-    const data = await res.json();
-    if (data.plan?.plan_data) {
-      planData = data.plan.plan_data;
-      activePlanId = data.plan.id;
-    }
-    if (data.profile) {
-      const p = data.profile;
-      document.querySelector('.dash-greeting span').textContent =
-        p.full_name?.split(' ')[0] || currentUser?.email?.split('@')[0] || 'Aspirant';
-    }
-    if (data.streak) {
-      document.querySelector('.sc:last-child .sc-val').textContent = 'Day ' + (data.streak.current_streak || 1);
-    }
-  } catch(e) { console.log('Load error:', e); }
-}
-
 let activePlanId = null;
 
-// ─── SUBJECTS DATA ───
-const SUBJS = [
-  {key:'gs1',name:'GS Paper I',sub:'History, Geography, Society',color:'#ff9f43'},
-  {key:'gs2',name:'GS Paper II',sub:'Polity, Governance, IR',color:'#4a9eff'},
-  {key:'gs3',name:'GS Paper III',sub:'Economy, Environment, S&T, Security',color:'#a29bfe'},
-  {key:'gs4',name:'GS Paper IV',sub:'Ethics, Integrity, Aptitude',color:'#fd79a8'},
-  {key:'csat',name:'CSAT',sub:'Paper II — Qualifying (33% cutoff)',color:'#fdcb6e'},
-  {key:'ca',name:'Current Affairs',sub:'Daily The Hindu + PIB',color:'#e17055'},
-  {key:'essay',name:'Essay Paper',sub:'Mains — 250 marks',color:'#81ecec'},
-  {key:'opt',name:'Optional Subject',sub:'As selected earlier',color:'#55efc4'},
-];
+// ─── EXAM-SPECIFIC SUBJECTS ───
+const EXAM_SUBJECTS = {
+  'UPSC CSE': [
+    {key:'gs1',name:'GS Paper I',sub:'History, Geography, Society',color:'#ff9f43'},
+    {key:'gs2',name:'GS Paper II',sub:'Polity, Governance, IR',color:'#4a9eff'},
+    {key:'gs3',name:'GS Paper III',sub:'Economy, Environment, S&T',color:'#a29bfe'},
+    {key:'gs4',name:'GS Paper IV',sub:'Ethics, Integrity, Aptitude',color:'#fd79a8'},
+    {key:'csat',name:'CSAT',sub:'Paper II — Qualifying',color:'#fdcb6e'},
+    {key:'ca',name:'Current Affairs',sub:'Daily The Hindu + PIB',color:'#e17055'},
+    {key:'essay',name:'Essay Paper',sub:'Mains — 250 marks',color:'#81ecec'},
+    {key:'opt',name:'Optional Subject',sub:'As selected earlier',color:'#55efc4'},
+  ],
+  'UPSC CAPF': [
+    {key:'gs1',name:'General Ability & Intelligence',sub:'Reasoning, Mental Ability',color:'#ff9f43'},
+    {key:'gs2',name:'General Studies',sub:'History, Geography, Polity',color:'#4a9eff'},
+    {key:'gs3',name:'Essay & Comprehension',sub:'English + Hindi writing',color:'#a29bfe'},
+    {key:'ca',name:'Current Affairs',sub:'National & International',color:'#e17055'},
+  ],
+  'SSC CGL': [
+    {key:'gs1',name:'Quantitative Aptitude',sub:'Maths, Data Interpretation',color:'#ff9f43'},
+    {key:'gs2',name:'English Language',sub:'Comprehension, Grammar, Vocabulary',color:'#4a9eff'},
+    {key:'gs3',name:'General Intelligence',sub:'Reasoning, Logical Ability',color:'#a29bfe'},
+    {key:'gs4',name:'General Awareness',sub:'History, Polity, Science, Economy',color:'#fd79a8'},
+    {key:'ca',name:'Current Affairs',sub:'National & International Events',color:'#e17055'},
+  ],
+  'MPSC': [
+    {key:'gs1',name:'General Studies I',sub:'History, Geography, Culture',color:'#ff9f43'},
+    {key:'gs2',name:'General Studies II',sub:'Polity, Economy, Science',color:'#4a9eff'},
+    {key:'gs3',name:'Marathi Language',sub:'Grammar, Comprehension, Essay',color:'#a29bfe'},
+    {key:'csat',name:'CSAT',sub:'Aptitude & Reasoning',color:'#fdcb6e'},
+    {key:'ca',name:'Current Affairs',sub:'Maharashtra + National focus',color:'#e17055'},
+  ],
+  'UPPSC': [
+    {key:'gs1',name:'General Studies I',sub:'History, Geography, Culture (UP focus)',color:'#ff9f43'},
+    {key:'gs2',name:'General Studies II',sub:'Polity, Governance, Economy',color:'#4a9eff'},
+    {key:'gs3',name:'General Hindi',sub:'Grammar, Essay, Comprehension',color:'#a29bfe'},
+    {key:'gs4',name:'General Studies III',sub:'Science, Environment, Tech',color:'#fd79a8'},
+    {key:'ca',name:'Current Affairs',sub:'UP + National Events',color:'#e17055'},
+  ],
+  'BPSC': [
+    {key:'gs1',name:'General Studies I',sub:'History, Geography (Bihar focus)',color:'#ff9f43'},
+    {key:'gs2',name:'General Studies II',sub:'Polity, Economy, Science',color:'#4a9eff'},
+    {key:'gs3',name:'General Hindi',sub:'Grammar, Essay, Comprehension',color:'#a29bfe'},
+    {key:'ca',name:'Current Affairs',sub:'Bihar + National Events',color:'#e17055'},
+  ],
+};
+
+// Get current subjects based on selected exam
+function getCurrentSubjs() {
+  return EXAM_SUBJECTS[selectedExam.type] || EXAM_SUBJECTS['UPSC CSE'];
+}
+
+// ─── SUBJECTS DATA (legacy fallback) ───
+const SUBJS = EXAM_SUBJECTS['UPSC CSE'];
 const ratings = {};
-SUBJS.forEach(s => ratings[s.key] = 'neutral');
+function initRatings() { getCurrentSubjs().forEach(s => { if(!ratings[s.key]) ratings[s.key]='neutral'; }); }
+initRatings();
 
 // ─── NAVIGATION ───
 function goTo(id) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
-  if(id==='s-subjects') buildSubjList();
+  if(id==='s-subjects'){ initRatings(); buildSubjList(); }
   if(id==='s-dashboard') buildDash();
 }
 
+// ─── SELECTED EXAM STATE ───
+let selectedExam = { type: 'UPSC CSE', year: '2026', stage: '', mode: '' };
+
 // Save exam profile then proceed
 async function saveExamProfile() {
-  const examSel = document.querySelector('[name="exam"].sel input, .rbtn.sel input[name="exam"]');
-  // Get selected exam from radio buttons
   const examBtn = document.querySelector('#s-exam .rbtn.sel strong');
-  const examType = examBtn ? examBtn.textContent : 'UPSC CSE';
+  const examType = examBtn ? examBtn.textContent.trim() : 'UPSC CSE';
   const attemptYear = document.getElementById('yr').value || '2026';
   const attemptNum = document.getElementById('atnum').value || '1';
   const retryBtn = document.querySelector('#retry-sec .rbtn.sel strong');
-  const stageBtn = document.querySelector('[name="stage"]')?.closest('.rbtn.sel strong');
-  const modeBtn = document.querySelector('[name="mode"]')?.closest('.rbtn.sel strong');
+  const stageBtn = document.querySelector('#s-exam [name="stage"]')?.closest('.rbtn.sel')?.querySelector('strong');
+  const modeBtn = document.querySelector('#s-exam [name="mode"]')?.closest('.rbtn.sel')?.querySelector('strong');
+
+  // Save to global state for use in plan generation
+  selectedExam = {
+    type: examType,
+    year: attemptYear,
+    stage: stageBtn?.textContent || '',
+    mode: modeBtn?.textContent || ''
+  };
+
+  // Reinit ratings for new exam's subjects
+  initRatings();
 
   await saveProfile({
     exam_type: examType,
@@ -1103,9 +1147,10 @@ function toggleRetry(v){
 
 // ─── SUBJECT LIST ───
 function buildSubjList(){
+  const subjs = getCurrentSubjs();
   const g=document.getElementById('subj-list'), rg=document.getElementById('read-grid');
   g.innerHTML=''; rg.innerHTML='';
-  SUBJS.forEach(s=>{
+  subjs.forEach(s=>{
     const r=ratings[s.key]||'neutral';
     g.innerHTML+=`<div class="subj-row">
       <div class="subj-name">${s.name}<small>${s.sub}</small></div>
@@ -1141,48 +1186,100 @@ function addBreak(){
   document.getElementById('bname').value='';
 }
 
+// ─── EXAM CONFIGS ───
+const EXAM_CONFIGS = {
+  'UPSC CSE': {
+    subjects: ['GS Paper I (History, Geography, Society)', 'GS Paper II (Polity, Governance, IR)', 'GS Paper III (Economy, Environment, S&T)', 'GS Paper IV (Ethics)', 'CSAT', 'Current Affairs', 'Essay', 'Optional Subject'],
+    examDate: '2026-05-24',
+    syllabus: 'UPSC Civil Services Examination syllabus with Prelims (GS + CSAT) and Mains (GS I-IV + Essay + Optional)'
+  },
+  'UPSC CAPF': {
+    subjects: ['General Ability & Intelligence', 'General Studies (History, Geography, Polity)', 'Essay & Comprehension', 'Physical Sciences', 'Current Affairs'],
+    examDate: '2026-08-01',
+    syllabus: 'UPSC CAPF (Central Armed Police Forces) AC exam syllabus'
+  },
+  'SSC CGL': {
+    subjects: ['Quantitative Aptitude', 'English Language', 'General Intelligence & Reasoning', 'General Awareness', 'Current Affairs'],
+    examDate: '2026-07-01',
+    syllabus: 'SSC CGL (Combined Graduate Level) Tier I and Tier II syllabus'
+  },
+  'MPSC': {
+    subjects: ['Marathi Language', 'General Studies I (History, Geography)', 'General Studies II (Polity, Economy)', 'General Studies III (Science, Environment)', 'CSAT', 'Current Affairs (Maharashtra focus)'],
+    examDate: '2026-06-01',
+    syllabus: 'MPSC (Maharashtra Public Service Commission) State Services exam syllabus'
+  },
+  'UPPSC': {
+    subjects: ['General Studies I (History, Geography, Culture)', 'General Studies II (Polity, Governance)', 'General Studies III (Economy, Science)', 'General Hindi', 'Current Affairs (UP focus)', 'Essay'],
+    examDate: '2026-07-01',
+    syllabus: 'UPPSC (Uttar Pradesh PSC) PCS exam syllabus'
+  },
+  'BPSC': {
+    subjects: ['General Studies I (History, Geography)', 'General Studies II (Polity, Economy, Science)', 'General Hindi', 'Current Affairs (Bihar focus)', 'Essay'],
+    examDate: '2026-08-01',
+    syllabus: 'BPSC (Bihar Public Service Commission) Integrated exam syllabus'
+  }
+};
+
 // ─── GENERATE PLAN ───
 let planData=null;
 async function startGenerate(){
   goTo('s-loading');
   const steps=['ls0','ls1','ls2','ls3','ls4'];
+
+  // Update loading screen text based on exam
+  const examName = selectedExam.type || 'UPSC CSE';
+  const examYear = selectedExam.year || '2026';
+  document.getElementById('ls0').innerHTML = `<span>📋</span> Loading ${examName} ${examYear} syllabus`;
+
   for(let i=0;i<steps.length;i++){
     await wait(700);
     document.getElementById(steps[i]).className='lstep active';
     if(i>0) document.getElementById(steps[i-1]).className='lstep done';
   }
-  // Build prompt
+
+  // Build dynamic prompt based on selected exam
   const weak=Object.entries(ratings).filter(([k,v])=>v==='weak').map(([k])=>SUBJS.find(s=>s.key===k)?.name||k).join(', ')||'none';
   const strong=Object.entries(ratings).filter(([k,v])=>v==='strong').map(([k])=>SUBJS.find(s=>s.key===k)?.name||k).join(', ')||'none';
-  const prompt=`You are an expert UPSC revision planner. Create a personalized 7-day revision plan for a UPSC CSE 2026 aspirant.
+  const examConfig = EXAM_CONFIGS[examName] || EXAM_CONFIGS['UPSC CSE'];
+  const subjectList = examConfig.subjects.join(', ');
+
+  const prompt=`You are an expert exam revision planner for Indian competitive exams. Create a personalized 7-day revision plan for a ${examName} ${examYear} aspirant.
+
+Exam: ${examName} ${examYear}
+Syllabus: ${examConfig.syllabus}
+Key subjects for this exam: ${subjectList}
+Prep stage: ${selectedExam.stage || 'Mid-prep'}
+Study mode: ${selectedExam.mode || 'Self-study'}
 
 Weak subjects (need more time): ${weak}
 Strong subjects (lighter cycles ok): ${strong}
 Daily study: 6 hours (3h morning, 3h evening)
 Study days: Monday–Saturday (Sunday = lighter revision)
 
-Return ONLY valid JSON, no markdown:
+IMPORTANT: Generate topics SPECIFIC to ${examName} — not generic UPSC content unless the exam is UPSC CSE.
+
+Return ONLY valid JSON, no markdown, no extra text:
 {
-  "summary": "brief strategy note",
+  "summary": "brief strategy note mentioning ${examName} specifically",
   "weeklyPlan": [
     {"day":"Monday","tasks":[
-      {"subject":"GS Paper I","topic":"specific UPSC topic here","duration":"90","type":"gs1","session":"Morning"},
-      {"subject":"GS Paper II","topic":"specific UPSC topic here","duration":"90","type":"gs2","session":"Morning"},
-      {"subject":"Current Affairs","topic":"The Hindu + PIB reading and note-making","duration":"60","type":"ca","session":"Evening"},
-      {"subject":"GS Paper III","topic":"specific UPSC topic here","duration":"120","type":"gs3","session":"Evening"}
+      {"subject":"subject name","topic":"specific ${examName} topic","duration":"90","type":"gs1","session":"Morning"},
+      {"subject":"subject name","topic":"specific ${examName} topic","duration":"90","type":"gs2","session":"Morning"},
+      {"subject":"Current Affairs","topic":"relevant current affairs for ${examName}","duration":"60","type":"ca","session":"Evening"},
+      {"subject":"subject name","topic":"specific ${examName} topic","duration":"120","type":"gs3","session":"Evening"}
     ]}
   ],
   "subjectCoverage":[
-    {"key":"gs1","name":"GS Paper I","color":"#ff9f43","totalTopics":24,"weeksAllocated":8,"strength":"neutral"},
-    {"key":"gs2","name":"GS Paper II","color":"#4a9eff","totalTopics":20,"weeksAllocated":6,"strength":"neutral"},
-    {"key":"gs3","name":"GS Paper III","color":"#a29bfe","totalTopics":18,"weeksAllocated":7,"strength":"neutral"},
-    {"key":"gs4","name":"GS Paper IV","color":"#fd79a8","totalTopics":10,"weeksAllocated":4,"strength":"neutral"},
-    {"key":"csat","name":"CSAT","color":"#fdcb6e","totalTopics":8,"weeksAllocated":2,"strength":"strong"},
+    {"key":"gs1","name":"First subject for ${examName}","color":"#ff9f43","totalTopics":20,"weeksAllocated":6,"strength":"neutral"},
+    {"key":"gs2","name":"Second subject for ${examName}","color":"#4a9eff","totalTopics":18,"weeksAllocated":5,"strength":"neutral"},
+    {"key":"gs3","name":"Third subject for ${examName}","color":"#a29bfe","totalTopics":15,"weeksAllocated":5,"strength":"neutral"},
+    {"key":"gs4","name":"Fourth subject for ${examName}","color":"#fd79a8","totalTopics":10,"weeksAllocated":4,"strength":"neutral"},
+    {"key":"csat","name":"Fifth subject for ${examName}","color":"#fdcb6e","totalTopics":8,"weeksAllocated":3,"strength":"neutral"},
     {"key":"ca","name":"Current Affairs","color":"#e17055","totalTopics":12,"weeksAllocated":12,"strength":"neutral"}
   ]
 }
 
-weeklyPlan must have exactly 7 entries (Mon–Sun). Use real UPSC syllabus topics. Allocate more time to weak subjects.`;
+weeklyPlan must have exactly 7 entries (Mon–Sun). Use real ${examName} syllabus topics only. Allocate more time to weak subjects.`;
 
   try{
     const r=await fetch('/api/claude',{
@@ -1197,28 +1294,53 @@ weeklyPlan must have exactly 7 entries (Mon–Sun). Use real UPSC syllabus topic
     const d=await r.json();
     const txt=d.content[0].text.replace(/```json|```/g,'').trim();
     planData=JSON.parse(txt);
-    // Stamp ratings into subjectCoverage
-    }catch(e){
-    planData=mockPlan();
+  }catch(e){
+    console.error('Plan generation error:', e);
+    planData=mockPlan(examName);
   }
   planData.subjectCoverage.forEach(s=>{s.strength=ratings[s.key]||'neutral';});
   // Save plan to database
   activePlanId = await savePlan(planData);
   document.getElementById(steps[steps.length-1]).className='lstep done';
   await wait(500);
+  // Update user pill before going to dashboard
+  const greetName = document.querySelector('.dash-greeting span')?.textContent || 'Aspirant';
+  updateUserPill(greetName, examName, examYear);
   goTo('s-dashboard');
 }
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 // ─── DASHBOARD ───
+// ─── UPDATE USER PILL ───
+function updateUserPill(name, examType, year) {
+  const label = document.getElementById('user-pill-label');
+  const avatar = document.getElementById('user-avatar');
+  if (label) label.textContent = (name || 'Aspirant') + ' · ' + (examType || 'UPSC CSE') + ' ' + (year || '2026');
+  if (avatar) avatar.textContent = (name || 'A')[0].toUpperCase();
+}
+
+// ─── DASHBOARD BUILD ───
 function buildDash(){
   if(!planData) planData=mockPlan();
-  const examDate=new Date('2026-05-24');
-  const today=new Date();
-  const days=Math.max(0,Math.ceil((examDate-today)/86400000));
-  document.getElementById('ddays').textContent=days;
-  document.getElementById('stat-days').textContent=days;
-  document.getElementById('today-lbl').textContent=today.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const examName = selectedExam.type || 'UPSC CSE';
+  const examYear = selectedExam.year || '2026';
+  const examConfig = EXAM_CONFIGS[examName] || EXAM_CONFIGS['UPSC CSE'];
+  const examDate = new Date(examConfig.examDate);
+  const today = new Date();
+  const days = Math.max(0, Math.ceil((examDate - today) / 86400000));
+
+  document.getElementById('stat-days').textContent = days;
+  document.getElementById('today-lbl').textContent = today.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Update meta line
+  document.querySelectorAll('.dash-meta').forEach(el => {
+    el.innerHTML = `${examName} ${examYear} &nbsp;·&nbsp; <strong>${days}</strong> days to exam &nbsp;·&nbsp; Week 1 of your plan`;
+  });
+
+  // Update user pill with current info
+  const firstName = document.querySelector('.dash-greeting span')?.textContent || 'Aspirant';
+  updateUserPill(firstName, examName, examYear);
+
   buildTodayPanel();
   buildWeekly();
   buildList();
@@ -1305,14 +1427,13 @@ function showView(id, el){
   document.querySelectorAll('.dash-view').forEach(v=>v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
-  if(el) el.classList.add('active');
-  else {
-    // find matching sidebar item and highlight it
+  if(el) {
+    el.classList.add('active');
+  } else {
     document.querySelectorAll('.sb-item').forEach(i=>{
       if(i.getAttribute('onclick')&&i.getAttribute('onclick').includes(id)) i.classList.add('active');
     });
   }
-  // refresh data for specific views
   if(id==='v-plan') buildPlanView();
   if(id==='v-today') buildTodayView();
   if(id==='v-progress') buildProgressView();
@@ -1396,7 +1517,9 @@ function showToast(msg,col){
 }
 
 // ─── MOCK PLAN ───
-function mockPlan(){
+function mockPlan(examName){
+  examName = examName || selectedExam.type || 'UPSC CSE';
+  const year = selectedExam.year || '2026';
   return{
     summary:"Prioritising weak GS papers with extra revision cycles. Strong subjects scheduled for periodic reviews only.",
     weeklyPlan:[
