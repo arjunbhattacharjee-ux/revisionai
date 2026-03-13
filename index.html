@@ -929,14 +929,25 @@ let planData = null;
 let activePlanId = null;
 
 // ══════════════════════════════════════════════════
-// SUPABASE INIT
+// SUPABASE INIT — keys loaded from /api/config
 // ══════════════════════════════════════════════════
 
-// ─── SUPABASE INIT ───
-// These are PUBLIC keys — safe to have in frontend
-const SUPABASE_URL = 'https://ruolwdkkxzrldplhobog.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1b2x3ZGtreHpybGRwbGhvYm9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTM5MDMsImV4cCI6MjA4ODg4OTkwM30.HCvIgX3dge6AC4unpMddKl3s0rbHOiToevHWNJy1kLs';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let sb = null; // initialised after config fetch
+
+async function initSupabase() {
+  try {
+    const res = await fetch('/api/config');
+    if (!res.ok) throw new Error('Config endpoint returned ' + res.status);
+    const { url, anonKey } = await res.json();
+    if (!url || !anonKey) throw new Error('Config missing url or anonKey');
+    sb = supabase.createClient(url, anonKey);
+  } catch (e) {
+    console.error('Failed to load Supabase config:', e.message);
+    // Show friendly error on auth screen
+    document.getElementById('s-auth').innerHTML +=
+      '<p style="color:#ff6b6b;text-align:center;margin-top:16px;font-size:12px;">⚠️ Could not connect to database. Check Vercel env vars.</p>';
+  }
+}
 
 // ─── AUTH STATE ───
 let currentUser = null;
@@ -944,10 +955,15 @@ let authToken = null;
 let routingDone = false; // lock prevents double-routing
 
 async function initAuth() {
-  // Clean the # hash from URL after Google OAuth redirect
-  if (window.location.hash && window.location.hash.includes('access_token')) {
-    history.replaceState(null, '', window.location.pathname);
+  // Wait for Supabase client to be ready
+  if (!sb) {
+    console.error('Supabase not initialised — initSupabase() must run first');
+    return;
   }
+
+  // IMPORTANT: Do NOT touch window.location.hash here.
+  // Supabase needs to read #access_token from the hash itself.
+  // It will clean it up internally after parsing.
 
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_OUT') {
@@ -959,17 +975,30 @@ async function initAuth() {
       goTo('s-auth');
       return;
     }
-    if (session && !routingDone) {
+    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session && !routingDone) {
       routingDone = true;
       currentUser = session.user;
       authToken = session.access_token;
-      // Clean hash after OAuth
+      // Clean hash from URL now that Supabase has already read it
       if (window.location.hash) {
         history.replaceState(null, '', window.location.pathname);
       }
       await routeUser();
     }
   });
+
+  // Also check for an existing session on page load (e.g. returning user, not OAuth redirect)
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && !routingDone) {
+      routingDone = true;
+      currentUser = session.user;
+      authToken = session.access_token;
+      await routeUser();
+    }
+  } catch(e) {
+    console.warn('getSession error:', e);
+  }
 }
 
 // ─── SMART ROUTING ───
@@ -1038,7 +1067,12 @@ async function routeUser() {
     goTo('s-exam'); // always safe to fall back to onboarding
   }
 }
-initAuth();
+// ─── BOOTSTRAP ───
+// Load config from server first, then start auth
+(async () => {
+  await initSupabase();
+  await initAuth();
+})();
 
 // ─── GOOGLE LOGIN ───
 async function doGoogleLogin() {
@@ -1118,9 +1152,15 @@ async function savePlan(plan_data) {
   const res = await fetch('/api/db?action=save-plan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-    body: JSON.stringify({ plan_data })
+    body: JSON.stringify({ plan_data, exam_type: selectedExam.type })
   });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('savePlan failed:', res.status, err);
+    return null;
+  }
   const data = await res.json();
+  console.log('savePlan OK, plan_id:', data.plan_id);
   return data.plan_id;
 }
 
@@ -1228,6 +1268,8 @@ function addBreak(){
 
 
 // ─── GENERATE PLAN ───
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
 async function startGenerate(){
   goTo('s-loading');
   const steps=['ls0','ls1','ls2','ls3','ls4'];
@@ -1237,15 +1279,18 @@ async function startGenerate(){
   const examYear = selectedExam.year || '2026';
   document.getElementById('ls0').innerHTML = `<span>📋</span> Loading ${examName} ${examYear} syllabus`;
 
-  for(let i=0;i<steps.length;i++){
-    await wait(700);
-    document.getElementById(steps[i]).className='lstep active';
-    if(i>0) document.getElementById(steps[i-1]).className='lstep done';
-  }
+  // Animate steps while AI call runs in parallel
+  const animateSteps = async () => {
+    for(let i=0;i<steps.length;i++){
+      await wait(700);
+      document.getElementById(steps[i]).className='lstep active';
+      if(i>0) document.getElementById(steps[i-1]).className='lstep done';
+    }
+  };
 
   // Build dynamic prompt based on selected exam
-  const weak=Object.entries(ratings).filter(([k,v])=>v==='weak').map(([k])=>SUBJS.find(s=>s.key===k)?.name||k).join(', ')||'none';
-  const strong=Object.entries(ratings).filter(([k,v])=>v==='strong').map(([k])=>SUBJS.find(s=>s.key===k)?.name||k).join(', ')||'none';
+  const weak=Object.entries(ratings).filter(([k,v])=>v==='weak').map(([k])=>getCurrentSubjs().find(s=>s.key===k)?.name||k).join(', ')||'none';
+  const strong=Object.entries(ratings).filter(([k,v])=>v==='strong').map(([k])=>getCurrentSubjs().find(s=>s.key===k)?.name||k).join(', ')||'none';
   const examConfig = EXAM_CONFIGS[examName] || EXAM_CONFIGS['UPSC CSE'];
   const subjectList = examConfig.subjects.join(', ');
 
@@ -1287,34 +1332,48 @@ Return ONLY valid JSON, no markdown, no extra text:
 
 weeklyPlan must have exactly 7 entries (Mon–Sun). Use real ${examName} syllabus topics only. Allocate more time to weak subjects.`;
 
-  try{
-    const r=await fetch('/api/claude',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:3000,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    const d=await r.json();
-    const txt=d.content[0].text.replace(/```json|```/g,'').trim();
-    planData=JSON.parse(txt);
-  }catch(e){
-    console.error('Plan generation error:', e);
-    planData=mockPlan(examName);
-  }
+  // Run animation and AI call in parallel
+  const aiCall = async () => {
+    try{
+      const controller = new AbortController();
+      const timeout = setTimeout(()=>controller.abort(), 25000); // 25s timeout
+      const r=await fetch('/api/claude',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:3000,
+          messages:[{role:'user',content:prompt}]
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      const d=await r.json();
+      const txt=d.content[0].text.replace(/```json|```/g,'').trim();
+      planData=JSON.parse(txt);
+    }catch(e){
+      console.warn('Plan generation fell back to mock:', e.message);
+      planData=mockPlan(examName);
+    }
+  };
+
+  // Run both in parallel, wait for both
+  await Promise.all([animateSteps(), aiCall()]);
+
   planData.subjectCoverage.forEach(s=>{s.strength=ratings[s.key]||'neutral';});
-  // Save plan to database
-  activePlanId = await savePlan(planData);
-  document.getElementById(steps[steps.length-1]).className='lstep done';
-  await wait(500);
+
+  // Save plan to database (non-blocking — don't let DB failure stop navigation)
+  savePlan(planData).then(id=>{ if(id) activePlanId=id; }).catch(e=>console.warn('savePlan error:',e));
+
+  // Mark all steps done
+  steps.forEach(id=>document.getElementById(id).className='lstep done');
+  await wait(400);
+
   // Update user pill before going to dashboard
   const greetName = document.querySelector('.dash-greeting span')?.textContent || 'Aspirant';
   updateUserPill(greetName, examName, examYear);
   goTo('s-dashboard');
 }
-const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 // ─── DASHBOARD ───
 // ─── UPDATE USER PILL ───
